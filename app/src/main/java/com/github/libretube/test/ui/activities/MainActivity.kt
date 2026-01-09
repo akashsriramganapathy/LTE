@@ -1,4 +1,19 @@
+package com.github.libretube.test.ui.activities
+
+import android.content.Intent
+import android.os.Build
+import android.os.Bundle
+import android.util.Log
+import android.view.KeyEvent
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewTreeObserver
+import android.widget.ScrollView
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.appcompat.widget.SearchView
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.collectAsState
@@ -7,13 +22,108 @@ import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.net.toUri
+import androidx.core.os.bundleOf
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.allViews
+import androidx.core.view.children
+import androidx.core.widget.NestedScrollView
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavController
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.onNavDestinationSelected
+import androidx.navigation.ui.setupWithNavController
+import androidx.recyclerview.widget.RecyclerView
+import com.github.libretube.test.BuildConfig
+import com.github.libretube.test.NavDirections
+import com.github.libretube.test.R
+import com.github.libretube.test.compat.PictureInPictureCompat
+import com.github.libretube.test.constants.IntentData
+import com.github.libretube.test.constants.PreferenceKeys
 import com.github.libretube.test.databinding.ActivityMainNavigationBinding
+import com.github.libretube.test.enums.ImportFormat
+import com.github.libretube.test.enums.TopLevelDestination
+import com.github.libretube.test.extensions.anyChildFocused
+import com.github.libretube.test.helpers.ImportHelper
+import com.github.libretube.test.helpers.IntentHelper
+import com.github.libretube.test.helpers.NavBarHelper
+import com.github.libretube.test.helpers.NavigationHelper
+import com.github.libretube.test.helpers.NetworkHelper
+import com.github.libretube.test.helpers.PreferenceHelper
+import com.github.libretube.test.helpers.ThemeHelper
+import com.github.libretube.test.ui.base.BaseActivity
+import com.github.libretube.test.ui.dialogs.ImportTempPlaylistDialog
+import com.github.libretube.test.ui.extensions.onSystemInsets
+import com.github.libretube.test.ui.fragments.AudioPlayerFragment
+import com.github.libretube.test.ui.fragments.PlayerFragment
 import com.github.libretube.test.ui.models.PlayerViewModel
+import com.github.libretube.test.ui.models.SearchViewModel
+import com.github.libretube.test.ui.models.SubscriptionsViewModel
+import com.github.libretube.test.ui.preferences.BackupRestoreSettings
+import com.github.libretube.test.ui.preferences.BackupRestoreSettings.Companion.FILETYPE_ANY
 import com.github.libretube.test.ui.screens.PlayerScreen
 import com.github.libretube.test.ui.theme.LibreTubeTheme
+import com.github.libretube.test.util.PlayingQueue
+import com.github.libretube.test.util.UpdateChecker
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 class MainActivity : BaseActivity() {
+
+    // registering for activity results
+    private var playlistExportFormat: ImportFormat = ImportFormat.NEWPIPE
+    private var exportPlaylistId: String? = null
+    private val createPlaylistsFile = registerForActivityResult(
+        ActivityResultContracts.CreateDocument(FILETYPE_ANY)
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            ImportHelper.exportPlaylists(
+                this@MainActivity,
+                uri,
+                playlistExportFormat,
+                selectedPlaylistIds = listOf(exportPlaylistId!!)
+            )
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
+        super.onCreate(savedInstanceState)
+        android.util.Log.d("LIBRETUBE_HEARTBEAT", "MainActivity created successfully. Logging is working.")
+
+        // show noInternet Activity if no internet available on app startup
+        if (!NetworkHelper.isNetworkAvailable(this)) {
+            val noInternetIntent = Intent(this, NoInternetActivity::class.java)
+            startActivity(noInternetIntent)
+            finish()
+            return
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val result = androidx.core.content.ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            )
+            if (result != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+
+        val isAppConfigured =
+            PreferenceHelper.getBoolean(PreferenceKeys.LOCAL_FEED_EXTRACTION, false)
+        if (!isAppConfigured) {
+            val welcomeIntent = Intent(this, WelcomeActivity::class.java)
+            startActivity(welcomeIntent)
+            finish()
+            return
+        }
+
         setContent {
             LibreTubeTheme {
                 val playerViewModel: PlayerViewModel by viewModels()
@@ -33,7 +143,7 @@ class MainActivity : BaseActivity() {
                     // Layer 1: App Content (Legacy Navigation)
                     AndroidView(
                         factory = { ctx ->
-                            binding = ActivityMainNavigationNavigationBinding.inflate(layoutInflater)
+                            binding = ActivityMainNavigationBinding.inflate(layoutInflater)
                             setupNavigation()
                             binding.root
                         },

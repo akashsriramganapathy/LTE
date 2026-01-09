@@ -154,6 +154,7 @@ dependencies {
     implementation(libs.androidx.fragment)
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.androidx.navigation.ui)
+    implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation(libs.androidx.preference)
     implementation(libs.androidx.documentfile)
     implementation(libs.androidx.work.runtime)
