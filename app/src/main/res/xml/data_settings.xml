@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+
+
+    <PreferenceCategory android:title="@string/backup_restore">
+        <Preference
+            android:icon="@drawable/ic_settings"
+            android:key="backup_restore"
+            android:title="Backup Settings"
+            android:summary="Configure auto-backup location and schedule"
+            app:fragment="com.github.libretube.test.ui.preferences.BackupRestoreSettings" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/storage">
+        <ListPreference
+            android:defaultValue="disabled"
+            android:entries="@array/dataSaverModeOptions"
+            android:entryValues="@array/dataSaverModeValues"
+            android:icon="@drawable/ic_data_saver"
+            android:summary="@string/data_saver_mode_summary"
+            app:key="data_saver_mode_key"
+            app:title="@string/data_saver_mode" />
+
+        <ListPreference
+            android:entries="@array/cacheSize"
+            android:entryValues="@array/cacheSizeValues"
+            android:icon="@drawable/ic_cache"
+            app:defaultValue="128"
+            app:key="image_cache_size"
+            app:title="@string/maximum_image_cache"
+            app:useSimpleSummaryProvider="true" />
+            
+        <SwitchPreferenceCompat
+            android:icon="@drawable/ic_info"
+            android:summary="Enables robust background logcat capture to a file. Requires restart."
+            app:key="enable_robust_logging"
+            app:title="Enable Extended Debug Logging" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/reset">
+        <Preference
+            android:icon="@drawable/ic_reset"
+            app:key="reset_settings"
+            app:title="@string/reset"
+            app:summary="@string/reset_message" />
+    </PreferenceCategory>
+</PreferenceScreen>

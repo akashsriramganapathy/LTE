@@ -1,0 +1,78 @@
+package com.github.libretube.test.ui.views
+
+import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
+import android.util.AttributeSet
+import android.view.View
+import androidx.core.view.marginLeft
+import androidx.media3.common.util.UnstableApi
+import com.github.libretube.test.api.obj.Segment
+import com.github.libretube.test.extensions.dpToPx
+import com.github.libretube.test.helpers.PreferenceHelper
+import com.github.libretube.test.helpers.ThemeHelper
+import com.google.android.material.R
+
+/**
+ * TimeBar that can be marked with SponsorBlock Segments
+ */
+@UnstableApi
+open class MarkableTimeBar(
+    context: Context,
+    attributeSet: AttributeSet? = null
+) : DismissableTimeBar(context, attributeSet) {
+    private var segments = listOf<Segment>()
+    private var length: Int = 0
+
+    private var progressBarHeight = 6f.dpToPx()
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        drawSegments(canvas)
+    }
+
+    private fun drawSegments(canvas: Canvas) {
+        if (exoPlayer == null) return
+
+        canvas.save()
+        val horizontalOffset = (parent as View).marginLeft
+        length = canvas.width - horizontalOffset * 2
+        val marginY =  (canvas.height - progressBarHeight) / 2
+        val themeColor = ThemeHelper.getThemeColor(context, R.attr.colorOnSecondary)
+
+        segments.forEach {
+            val (start, end) = it.segmentStartAndEnd
+
+            canvas.drawRect(
+                Rect(
+                    start.toLength() + horizontalOffset,
+                    marginY,
+                    end.toLength() + horizontalOffset,
+                    marginY + progressBarHeight
+                ),
+                Paint().apply {
+                    color = if (PreferenceHelper.getBoolean("sb_enable_custom_colors", false)) {
+                        PreferenceHelper.getInt(it.category + "_color", themeColor)
+                    } else {
+                        themeColor
+                    }
+                }
+            )
+        }
+        canvas.restore()
+    }
+
+    private fun Float.toLength(): Int {
+        return (this * 1000 / exoPlayer!!.duration * length).toInt()
+    }
+
+    fun setSegments(segments: List<Segment>) {
+        this.segments = segments
+    }
+
+    fun clearSegments() {
+        segments = listOf()
+    }
+}
+

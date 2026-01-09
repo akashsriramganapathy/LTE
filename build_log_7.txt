@@ -1,0 +1,160 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Calculating task graph as configuration cache cannot be reused because file 'gradle\libs.versions.toml' has changed.
+> Task :clean
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :baselineprofile:clean UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :logger:preBuild UP-TO-DATE
+> Task :logger:preDebugBuild UP-TO-DATE
+> Task :logger:checkKotlinGradlePluginConfigurationErrors
+> Task :logger:clean
+> Task :logger:processDebugManifest FROM-CACHE
+> Task :logger:generateDebugResValues FROM-CACHE
+> Task :logger:extractDebugSupportedLocales FROM-CACHE
+> Task :logger:javaPreCompileDebug FROM-CACHE
+> Task :logger:generateDebugResources FROM-CACHE
+> Task :logger:extractDeepLinksDebug FROM-CACHE
+> Task :logger:writeDebugAarMetadata
+> Task :logger:packageDebugResources FROM-CACHE
+> Task :logger:parseDebugLocalResources FROM-CACHE
+> Task :logger:generateDebugRFile FROM-CACHE
+> Task :logger:compileDebugLibraryResources FROM-CACHE
+> Task :logger:mergeDebugShaders
+> Task :logger:mergeDebugJniLibFolders
+> Task :logger:compileDebugShaders NO-SOURCE
+> Task :logger:mergeDebugNativeLibs NO-SOURCE
+> Task :logger:generateDebugAssets UP-TO-DATE
+> Task :logger:packageDebugAssets
+> Task :logger:stripDebugDebugSymbols NO-SOURCE
+> Task :logger:copyDebugJniLibsProjectOnly
+> Task :logger:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :logger:prepareDebugArtProfile UP-TO-DATE
+> Task :logger:prepareLintJarForPublish UP-TO-DATE
+> Task :logger:copyDebugJniLibsProjectAndLocalJars
+> Task :logger:compileDebugKotlin FROM-CACHE
+> Task :logger:extractDebugAnnotations FROM-CACHE
+> Task :logger:compileDebugJavaWithJavac NO-SOURCE
+> Task :logger:processDebugJavaRes
+> Task :logger:bundleLibRuntimeToDirDebug
+> Task :logger:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :logger:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :logger:bundleLibRuntimeToJarDebug
+> Task :logger:bundleLibCompileToJarDebug
+> Task :logger:mergeDebugJavaResource
+> Task :logger:syncDebugLibJars FROM-CACHE
+> Task :logger:bundleDebugAar
+> Task :logger:assembleDebug
+> Task :app:clean
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugResValues FROM-CACHE
+> Task :app:generateDebugBuildConfig FROM-CACHE
+> Task :app:generateDebugResources FROM-CACHE
+> Task :app:extractDebugSupportedLocales FROM-CACHE
+> Task :app:generateSafeArgsDebug FROM-CACHE
+> Task :app:generateDebugLocaleConfig FROM-CACHE
+> Task :app:mapDebugSourceSetPaths
+> Task :app:dataBindingMergeDependencyArtifactsDebug
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug FROM-CACHE
+> Task :app:checkDebugAarMetadata
+> Task :app:javaPreCompileDebug FROM-CACHE
+> Task :app:mergeDebugShaders
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:processDebugMainManifest FROM-CACHE
+> Task :app:processDebugManifest FROM-CACHE
+> Task :app:processDebugManifestForPackage FROM-CACHE
+> Task :app:mergeDebugAssets
+> Task :app:l8DexDesugarLibDebug FROM-CACHE
+> Task :app:compressDebugAssets FROM-CACHE
+> Task :app:desugarDebugFileDependencies FROM-CACHE
+> Task :app:mergeDebugJniLibFolders
+> Task :app:mergeDebugNativeLibs
+> Task :app:checkDebugDuplicateClasses
+
+> Task :app:stripDebugDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so.
+
+> Task :app:mergeLibDexDebug FROM-CACHE
+> Task :app:validateSigningDebug
+> Task :app:writeDebugAppMetadata
+> Task :app:writeDebugSigningConfigVersions
+> Task :app:packageDebugResources FROM-CACHE
+> Task :app:parseDebugLocalResources FROM-CACHE
+> Task :app:mergeExtDexDebug FROM-CACHE
+> Task :app:mergeDebugResources FROM-CACHE
+> Task :app:dataBindingGenBaseClassesDebug FROM-CACHE
+> Task :app:processDebugResources FROM-CACHE
+> Task :app:kspDebugKotlin FROM-CACHE
+> Task :app:compileDebugKotlin
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/api/poToken/PoTokenWebView.kt:30:64 Parameter 'context' is never used, could be renamed to _
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/helpers/DashHelper.kt:50:34 Unnecessary non-null assertion (!!) on a non-null receiver of type Boolean
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/helpers/DashHelper.kt:50:55 Unnecessary non-null assertion (!!) on a non-null receiver of type Long
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/helpers/DashHelper.kt:163:58 Unnecessary non-null assertion (!!) on a non-null receiver of type String
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/helpers/DashHelper.kt:205:58 Unnecessary non-null assertion (!!) on a non-null receiver of type String
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/helpers/DownloadHelper.kt:260:25 'when' is exhaustive so 'else' is redundant here
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/helpers/DownloadHelper.kt:332:44 Parameter 'context' is never used
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/helpers/DownloadManager.kt:246:16 Parameter 'context' is never used
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/helpers/PreferenceHelper.kt:152:58 Unchecked cast: Any? to Set<String>
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/repo/LocalPlaylistsRepository.kt:135:58 Unnecessary non-null assertion (!!) on a non-null receiver of type String
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/DownloadService.kt:183:21 'when' is exhaustive so 'else' is redundant here
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/DownloadService.kt:190:85 Unnecessary non-null assertion (!!) on a non-null receiver of type String
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/DownloadService.kt:206:23 Parameter 'id' is never used
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/OfflinePlayerService.kt:16:41 'SingleSampleMediaSource' is deprecated. Deprecated in Java
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/OfflinePlayerService.kt:144:43 Name shadowed: videoUri
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/OfflinePlayerService.kt:154:43 Name shadowed: audioUri
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/OfflinePlayerService.kt:164:50 Name shadowed: subtitleInfo
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/OfflinePlayerService.kt:170:13 'SingleSampleMediaSource' is deprecated. Deprecated in Java
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/OnlinePlayerService.kt:283:37 Unnecessary non-null assertion (!!) on a non-null receiver of type String
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/OnlinePlayerService.kt:297:32 Unnecessary non-null assertion (!!) on a non-null receiver of type String
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/PlaylistDownloadEnqueueService.kt:193:13 Variable 'alreadyRetriedOnce' is never used
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/PlaylistDownloadEnqueueService.kt:200:108 Unnecessary non-null assertion (!!) on a non-null receiver of type String
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/PlaylistDownloadEnqueueService.kt:218:41 Unnecessary non-null assertion (!!) on a non-null receiver of type Playlist
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/services/PlaylistDownloadEnqueueService.kt:281:47 Unnecessary non-null assertion (!!) on a non-null receiver of type Streams
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/adapters/DownloadsAdapter.kt:116:21 Name shadowed: items
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/adapters/PlaylistBookmarkAdapter.kt:71:21 Variable 'isBookmarked' is never used
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/adapters/PlaylistBookmarkAdapter.kt:100:21 Variable 'isBookmarked' is never used
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/components/QueueRow.kt:43:5 Parameter 'onDrag' is never used
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/dialogs/PlayOfflineDialog.kt:21:13 Variable 'videoId' is never used
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/extensions/OnSystemInsets.kt:10:55 Parameter 'v' is never used, could be renamed to _
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/fragments/ChannelContentFragment.kt:67:17 Variable 'videoList' is never used
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/fragments/LibraryFragment.kt:168:13 Variable 'sortOptions' is never used
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/fragments/LibraryFragment.kt:170:13 Variable 'order' is never used
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/fragments/PlaylistFragment.kt:567:24 Variable 'response' is never used
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/fragments/SearchResultFragment.kt:114:18 Name shadowed: suggestion
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/preferences/SettingsSearchFragment.kt:53:53 Name shadowed: view
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/preferences/SettingsSearchFragment.kt:258:36 Unchecked cast: Class<*>! to Class<out Fragment>
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/preferences/SettingsSearchFragment.kt:266:45 'newInstance(): T!' is deprecated. Deprecated in Java
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/screens/InfoScreens.kt:106:5 Parameter 'title' is never used
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/ui/theme/Theme.kt:90:20 'setter for statusBarColor: Int' is deprecated. Deprecated in Java
+w: file:///D:/Rom/YTD/Libretube/app/src/main/java/com/github/libretube/test/util/PlayingQueue.kt:56:57 Parameter 'item' is never used, could be renamed to _
+
+> Task :app:processDebugJavaRes
+> Task :app:mergeDebugJavaResource
+> Task :app:compileDebugJavaWithJavac
+> Task :app:dexBuilderDebug
+> Task :app:mergeDebugGlobalSynthetics
+> Task :app:mergeProjectDexDebug
+> Task :app:packageDebug
+> Task :app:assembleDebug
+> Task :app:createDebugApkListingFileRedirect
+
+1 problem was found storing the configuration cache.
+- Plugin 'kotlin-android': Unsupported provider is registered as a task completion listener in 'org.gradle.build.event.BuildEventsListenerRegistry'. Configuration Cache only supports providers returned from 'org.gradle.api.services.BuildServiceRegistry' as task completion listeners.
+  See https://docs.gradle.org/9.2.1/userguide/configuration_cache_status.html#config_cache:not_yet_implemented:more_build_event_listeners
+
+See the complete report at file:///D:/Rom/YTD/Libretube/build/reports/configuration-cache/bbzjnk5ckrm65uwjpa72sjkhx/gk2uslbr1ej54w12rxzr69sk/configuration-cache-report.html
+
+[Incubating] Problems report is available at: file:///D:/Rom/YTD/Libretube/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 3m 34s
+80 actionable tasks: 39 executed, 35 from cache, 6 up-to-date
+Configuration cache entry stored with 1 problem.

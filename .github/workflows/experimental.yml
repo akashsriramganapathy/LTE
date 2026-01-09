@@ -1,0 +1,72 @@
+name: Experimental Build
+
+on:
+  workflow_dispatch: # Allow manual trigger
+  push:
+    branches: [ experimental ]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set Release Variables
+        run: |
+          echo "RELEASE_TAG=experimental" >> $GITHUB_ENV
+          echo "APK_NAME=LibreTube-Experimental.apk" >> $GITHUB_ENV
+          echo "RELEASE_NAME=Experimental Build ${{ github.run_number }}" >> $GITHUB_ENV
+          echo "MAKE_LATEST=false" >> $GITHUB_ENV
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew assembleRelease --stacktrace -PrunNumber=${{ github.run_number }} -PreleaseTag=${{ env.RELEASE_TAG }}
+
+      - name: Sign APK
+        uses: ilharp/sign-android-release@v2
+        id: sign_app
+        with:
+          releaseDir: app/build/outputs/apk/release
+          signingKey: ${{ secrets.SIGNING_KEY }}
+          keyAlias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Clean and Rename APK
+        run: |
+          mv "$ANDROID_SIGNED_FILE" app/build/outputs/apk/release/${{ env.APK_NAME }}
+          find app/build/outputs/apk/release -type f -name "*.apk" ! -name "${{ env.APK_NAME }}" -delete
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_NAME }}
+          artifacts: "app/build/outputs/apk/release/${{ env.APK_NAME }}"
+          allowUpdates: true
+          removeArtifacts: true
+          replacesArtifacts: true
+          makeLatest: ${{ env.MAKE_LATEST }}
+          body: "Latest experimental automated build (Run ${{ github.run_number }})"
+          token: ${{ secrets.GITHUB_TOKEN }}

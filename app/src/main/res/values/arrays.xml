@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="backup_type_entries">
+        <item>@string/backup_json_full</item>
+        <item>@string/backup_db_full</item>
+    </string-array>
+    <string-array name="backup_type_values">
+        <item>json</item>
+        <item>db</item>
+    </string-array>
+</resources>

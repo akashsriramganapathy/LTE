@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="@string/customization">
+
+        <Preference
+            android:icon="@drawable/ic_home"
+            app:key="navbar_items"
+            app:summary="@string/navbar_order_summary"
+            app:title="@string/navbar_order" />
+
+        <ListPreference
+            android:icon="@drawable/ic_label"
+            app:defaultValue="selected"
+            app:entries="@array/labelVisibility"
+            app:entryValues="@array/labelVisibilityValues"
+            app:key="label_visibility"
+            app:title="@string/navLabelVisibility"
+            app:useSimpleSummaryProvider="true" />
+
+        <SwitchPreferenceCompat
+            android:icon="@drawable/ic_badge"
+            android:summary="@string/new_videos_badge_summary"
+            app:key="new_videos_badge"
+            app:title="@string/new_videos_badge" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

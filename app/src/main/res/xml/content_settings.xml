@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory android:title="@string/sponsorblock">
+        <SwitchPreferenceCompat
+            android:summaryOff="@string/disabled"
+            android:summaryOn="@string/enabled"
+            app:defaultValue="true"
+            app:key="sb_enabled_key"
+            app:title="@string/sponsorblock" />
+
+        <SwitchPreferenceCompat
+            android:dependency="sb_enabled_key"
+            android:summaryOff="@string/disabled"
+            android:summaryOn="@string/enabled"
+            app:defaultValue="true"
+            app:key="sb_notifications_key"
+            app:title="@string/sponsorblock_notifications" />
+            
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="sb_highlights"
+            app:summary="@string/category_highlight_summary"
+            app:title="@string/category_highlight" />
+
+        <SwitchPreferenceCompat
+            android:dependency="sb_enabled_key"
+            android:summary="@string/sb_custom_colors_summary"
+            app:defaultValue="false"
+            app:key="sb_enable_custom_colors"
+            app:title="@string/sb_custom_colors" />
+            
+        <PreferenceCategory app:title="@string/category_segments">
+            <com.github.libretube.test.ui.views.SbSpinnerPreference
+                app:defaultValue="automatic"
+                app:key="sponsor_category"
+                app:summary="@string/category_sponsor_summary"
+                app:title="@string/category_sponsor" />
+            <com.github.libretube.test.ui.views.ColorPreference
+                android:dependency="sb_enable_custom_colors"
+                app:defaultValue="#00d400"
+                app:key="sponsor_color"
+                app:title="@string/color" />
+            <!-- Add other segments here if needed, or keep it minimal as requested. Keeping minimal for now? No, user wants combine. Keeping key segments. -->
+             <com.github.libretube.test.ui.views.SbSpinnerPreference
+                app:defaultValue="off"
+                app:key="interaction_category"
+                app:summary="@string/category_interaction_summary"
+                app:title="@string/category_interaction" />
+             <com.github.libretube.test.ui.views.ColorPreference
+                android:dependency="sb_enable_custom_colors"
+                app:defaultValue="#cc00ff"
+                app:key="interaction_color"
+                app:title="@string/color" />
+             <com.github.libretube.test.ui.views.SbSpinnerPreference
+                app:defaultValue="off"
+                app:key="intro_category"
+                app:summary="@string/category_intro_summary"
+                app:title="@string/category_intro" />
+             <com.github.libretube.test.ui.views.ColorPreference
+                android:dependency="sb_enable_custom_colors"
+                app:defaultValue="#00ffff"
+                app:key="intro_color"
+                app:title="@string/color" />
+               <com.github.libretube.test.ui.views.SbSpinnerPreference
+                app:defaultValue="off"
+                app:key="outro_category"
+                app:summary="@string/category_outro_summary"
+                app:title="@string/category_outro" />
+             <com.github.libretube.test.ui.views.ColorPreference
+                android:dependency="sb_enable_custom_colors"
+                app:defaultValue="#0202ED"
+                app:key="outro_color"
+                app:title="@string/color" />
+                
+               <com.github.libretube.test.ui.views.SbSpinnerPreference
+                app:defaultValue="off"
+                app:key="selfpromo_category"
+                app:summary="@string/category_selfpromo_summary"
+                app:title="@string/category_selfpromo" />
+            <com.github.libretube.test.ui.views.ColorPreference
+                android:dependency="sb_enable_custom_colors"
+                app:defaultValue="#ffff00"
+                app:key="selfpromo_color"
+                app:title="@string/color" />
+        </PreferenceCategory>
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/dearrow">
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="dearrow"
+            app:summary="@string/dearrow_summary"
+            app:title="@string/dearrow" />
+
+        <PreferenceCategory
+            android:dependency="dearrow"
+            app:title="@string/dearrow">
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:key="dearrow_titles"
+                app:summary="@string/dearrow_titles_summary"
+                app:title="@string/dearrow_titles" />
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:key="dearrow_thumbnails"
+                app:summary="@string/dearrow_thumbnails_summary"
+                app:title="@string/dearrow_thumbnails" />
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:key="dearrow_exempt_live"
+                app:summary="@string/dearrow_exemption_live_summary"
+                app:title="@string/dearrow_exemption_live" />
+        </PreferenceCategory>
+    </PreferenceCategory>
+    
+    <PreferenceCategory android:title="Contribution &amp; Authentication">
+         <SwitchPreferenceCompat
+            android:summaryOff="@string/disabled"
+            android:summaryOn="@string/enabled"
+            app:defaultValue="false"
+            app:key="sb_contribute_key"
+            app:title="@string/contribute_to_sponsorblock" />
+
+        <SwitchPreferenceCompat
+            android:summaryOff="@string/disabled"
+            android:summaryOn="@string/enabled"
+            app:defaultValue="false"
+            app:key="dearrow_contribute_key"
+            app:title="@string/contribute_to_dearrow" />
+            
+        <EditTextPreference
+            app:key="sb_user_id"
+            app:title="User ID (Shared)" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/history">
+        <Preference
+            android:icon="@drawable/ic_history_filled"
+            android:key="history_settings"
+            android:summary="@string/history_summary"
+            android:title="@string/history"
+            app:fragment="com.github.libretube.test.ui.preferences.HistorySettings" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/local_ryd">
+        <SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:icon="@drawable/ic_dislike"
+            android:summary="@string/local_ryd_summary"
+            android:title="@string/local_ryd"
+            app:key="local_return_youtube_dislikes" />
+    </PreferenceCategory>
+</PreferenceScreen>

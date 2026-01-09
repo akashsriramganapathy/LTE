@@ -1,0 +1,220 @@
+package com.github.libretube.test.ui.sheets
+
+import android.os.Bundle
+import androidx.core.os.bundleOf
+import com.github.libretube.test.R
+import com.github.libretube.test.api.MediaServiceRepository
+import com.github.libretube.test.api.PlaylistsHelper
+import com.github.libretube.test.constants.IntentData
+import com.github.libretube.test.db.DatabaseHolder
+import com.github.libretube.test.enums.ImportFormat
+import com.github.libretube.test.enums.PlaylistType
+import com.github.libretube.test.enums.ShareObjectType
+import com.github.libretube.test.extensions.serializable
+import com.github.libretube.test.extensions.toID
+import com.github.libretube.test.extensions.toastFromMainDispatcher
+import com.github.libretube.test.helpers.BackgroundHelper
+import com.github.libretube.test.helpers.ContextHelper
+import com.github.libretube.test.helpers.DownloadHelper
+import com.github.libretube.test.helpers.NavigationHelper
+import com.github.libretube.test.obj.ShareData
+import com.github.libretube.test.ui.activities.MainActivity
+import com.github.libretube.test.ui.base.BaseActivity
+import com.github.libretube.test.ui.dialogs.DeletePlaylistDialog
+import com.github.libretube.test.ui.dialogs.PlaylistDescriptionDialog
+import com.github.libretube.test.ui.dialogs.RenamePlaylistDialog
+import com.github.libretube.test.ui.dialogs.ShareDialog
+import com.github.libretube.test.ui.preferences.BackupRestoreSettings
+import com.github.libretube.test.util.PlayingQueue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+
+class PlaylistOptionsBottomSheet : BaseBottomSheet() {
+    private lateinit var playlistName: String
+    private lateinit var playlistId: String
+    private lateinit var playlistType: PlaylistType
+
+    private var exportFormat: ImportFormat = ImportFormat.NEWPIPE
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        arguments?.let {
+            playlistName = it.getString(IntentData.playlistName)!!
+            playlistId = it.getString(IntentData.playlistId)!!
+            playlistType = it.serializable(IntentData.playlistType)!!
+        }
+
+        setTitle(playlistName)
+
+        // options for the dialog
+        val optionsList = mutableListOf(R.string.playOnBackground, R.string.download)
+
+        optionsList.add(R.string.tooltip_sort)
+        if (playlistType != PlaylistType.PUBLIC) {
+            optionsList.add(R.string.reorder_playlist)
+        }
+
+        val isBookmarked = runBlocking(Dispatchers.IO) {
+            DatabaseHolder.Database.playlistBookmarkDao().includes(playlistId)
+        }
+
+        if (playlistType == PlaylistType.PUBLIC) {
+            optionsList.add(R.string.share)
+            optionsList.add(R.string.clonePlaylist)
+
+            // only add the bookmark option to the playlist if public
+            optionsList.add(
+                if (isBookmarked) R.string.remove_bookmark else R.string.add_to_bookmarks
+            )
+        } else {
+            optionsList.add(R.string.export_playlist)
+            optionsList.add(R.string.renamePlaylist)
+            optionsList.add(R.string.change_playlist_description)
+            optionsList.add(R.string.deletePlaylist)
+        }
+
+        setSimpleItems(optionsList.map { getString(it) }) { which ->
+            val mFragmentManager = (context as BaseActivity).supportFragmentManager
+
+            when (optionsList[which]) {
+                // play the playlist in the background
+                R.string.playOnBackground -> {
+                    val playlist = withContext(Dispatchers.IO) {
+                        runCatching { PlaylistsHelper.getPlaylist(playlistId) }
+                    }.getOrElse {
+                        context?.toastFromMainDispatcher(R.string.error)
+                        return@setSimpleItems
+                    }
+
+                    playlist.relatedStreams.firstOrNull()?.let {
+                        PlayingQueue.setStreams(playlist.relatedStreams)
+                        BackgroundHelper.playOnBackground(
+                            requireContext(),
+                            it.url!!.toID(),
+                            playlistId = playlistId
+                        )
+                        NavigationHelper.openAudioPlayerFragment(
+                            requireContext(),
+                            minimizeByDefault = true
+                        )
+                    }
+                }
+
+                R.string.add_to_queue -> {
+                    PlayingQueue.insertPlaylist(playlistId, null)
+                }
+                // Clone the playlist
+                R.string.clonePlaylist -> {
+                    val context = requireContext()
+                    val playlistId = withContext(Dispatchers.IO) {
+                        runCatching {
+                            PlaylistsHelper.clonePlaylist(playlistId)
+                        }.getOrNull()
+                    }
+                    context.toastFromMainDispatcher(
+                        if (playlistId != null) R.string.playlistCloned else R.string.server_error
+                    )
+                }
+                // share the playlist
+                R.string.share -> {
+                    val newShareDialog = ShareDialog()
+                    newShareDialog.arguments = bundleOf(
+                        IntentData.id to playlistId,
+                        IntentData.shareObjectType to ShareObjectType.PLAYLIST,
+                        IntentData.shareData to ShareData(currentPlaylist = playlistName)
+                    )
+                    // using parentFragmentManager, childFragmentManager doesn't work here
+                    newShareDialog.show(parentFragmentManager, ShareDialog::class.java.name)
+                }
+
+                R.string.deletePlaylist -> {
+                    val newDeletePlaylistDialog = DeletePlaylistDialog()
+                    newDeletePlaylistDialog.arguments = bundleOf(
+                        IntentData.playlistId to playlistId
+                    )
+                    newDeletePlaylistDialog.show(mFragmentManager, null)
+                }
+
+                R.string.renamePlaylist -> {
+                    val newRenamePlaylistDialog = RenamePlaylistDialog()
+                    newRenamePlaylistDialog.arguments = bundleOf(
+                        IntentData.playlistId to playlistId,
+                        IntentData.playlistName to playlistName
+                    )
+                    newRenamePlaylistDialog.show(mFragmentManager, null)
+                }
+
+                R.string.change_playlist_description -> {
+                    val newPlaylistDescriptionDialog = PlaylistDescriptionDialog()
+                    newPlaylistDescriptionDialog.arguments = bundleOf(
+                        IntentData.playlistId to playlistId,
+                        IntentData.playlistDescription to ""
+                    )
+                    newPlaylistDescriptionDialog.show(mFragmentManager, null)
+                }
+
+                R.string.download -> {
+                    DownloadHelper.startDownloadPlaylistDialog(
+                        requireContext(),
+                        mFragmentManager,
+                        playlistId,
+                        playlistName,
+                        playlistType
+                    )
+                }
+
+                R.string.export_playlist -> {
+                    val context = requireContext()
+
+                    BackupRestoreSettings.createImportFormatDialog(
+                        context,
+                        R.string.export_playlist,
+                        BackupRestoreSettings.exportPlaylistFormatList + listOf(ImportFormat.URLSORIDS)
+                    ) { format, includeTimestamp ->
+                        exportFormat = format
+                        ContextHelper.unwrapActivity<MainActivity>(context)
+                            .startPlaylistExport(playlistId, playlistName, exportFormat, includeTimestamp)
+                    }
+                }
+
+                R.string.tooltip_sort -> {
+                    parentFragmentManager.setFragmentResult(
+                        PLAYLIST_OPTIONS_REQUEST_KEY,
+                        bundleOf(IntentData.requestSort to true)
+                    )
+                    dismiss()
+                }
+
+                R.string.reorder_playlist -> {
+                    parentFragmentManager.setFragmentResult(
+                        PLAYLIST_OPTIONS_REQUEST_KEY,
+                        bundleOf(IntentData.requestReorder to true)
+                    )
+                    dismiss()
+                }
+
+                else -> {
+                    withContext(Dispatchers.IO) {
+                        if (isBookmarked) {
+                            DatabaseHolder.Database.playlistBookmarkDao().deleteById(playlistId)
+                        } else {
+                            val bookmark = try {
+                                MediaServiceRepository.instance.getPlaylist(playlistId)
+                            } catch (e: Exception) {
+                                return@withContext
+                            }.toPlaylistBookmark(playlistId)
+                            DatabaseHolder.Database.playlistBookmarkDao().insert(bookmark)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    companion object {
+        const val PLAYLIST_OPTIONS_REQUEST_KEY = "playlist_options_request_key"
+    }
+}
+

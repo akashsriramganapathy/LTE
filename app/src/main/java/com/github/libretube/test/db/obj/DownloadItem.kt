@@ -1,0 +1,39 @@
+package com.github.libretube.test.db.obj
+
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
+import androidx.room.PrimaryKey
+import com.github.libretube.test.enums.FileType
+import java.nio.file.Path
+
+@Entity(
+    tableName = "downloadItem",
+    indices = [
+        Index(value = ["path"], unique = true),
+        Index(value = ["videoId"])
+    ],
+    foreignKeys = [
+        ForeignKey(
+            entity = Download::class,
+            parentColumns = ["videoId"],
+            childColumns = ["videoId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
+data class DownloadItem(
+    @PrimaryKey(autoGenerate = true)
+    var id: Int = 0,
+    val type: FileType,
+    val videoId: String,
+    val fileName: String,
+    var path: Path,
+    var url: String? = null,
+    var format: String? = null,
+    var quality: String? = null,
+    var language: String? = null,
+    var downloadSize: Long = -1L,
+    var systemId: Long = -1L
+)
+

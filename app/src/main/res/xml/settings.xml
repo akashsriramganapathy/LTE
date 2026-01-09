@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <Preference
+        android:icon="@drawable/ic_settings"
+        android:summary="@string/general_summary"
+        app:fragment="com.github.libretube.test.ui.preferences.GeneralSettings"
+        app:key="general"
+        app:title="@string/general" />
+
+    <Preference
+        android:icon="@drawable/ic_download"
+        app:fragment="com.github.libretube.test.ui.preferences.DownloadSettings"
+        app:key="downloads"
+        app:summary="@string/download_path_summary"
+        app:title="@string/downloads" />
+
+    <Preference
+        android:icon="@drawable/ic_color"
+        app:fragment="com.github.libretube.test.ui.preferences.AppearanceSettings"
+        app:key="appearance"
+        app:summary="@string/appearance_summary"
+        app:title="@string/appearance" />
+
+    <Preference
+        android:icon="@drawable/ic_play_filled"
+        app:fragment="com.github.libretube.test.ui.preferences.PlayerSettings"
+        app:key="player"
+        app:summary="@string/player_summary"
+        app:title="@string/player" />
+
+    <Preference
+        android:icon="@drawable/ic_awesome"
+        app:fragment="com.github.libretube.test.ui.preferences.ContentSettings"
+        app:key="content"
+        app:summary="@string/content_settings_summary"
+        app:title="@string/content_settings" />
+
+
+    <Preference
+        android:icon="@drawable/ic_backup"
+        app:fragment="com.github.libretube.test.ui.preferences.DataSettings"
+        app:key="data_backup"
+        app:summary="@string/data_backup_summary"
+        app:title="@string/data_backup" />
+
+    <Preference
+        android:icon="@drawable/ic_notification"
+        app:fragment="com.github.libretube.test.ui.preferences.NotificationSettings"
+        app:key="notifications"
+        app:summary="@string/notification_summary"
+        app:title="@string/notifications" />
+
+    <PreferenceCategory android:title="@string/about">
+        <Preference
+            android:icon="@drawable/ic_info"
+            android:key="update"
+            android:summary="@string/update_summary"
+            android:title="@string/version" />
+
+        <Preference
+            android:icon="@drawable/ic_info"
+            android:key="view_logs"
+            android:title="@string/view_logs" />
+    </PreferenceCategory>
+
+</PreferenceScreen>
+
