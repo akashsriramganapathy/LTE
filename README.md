@@ -1,47 +1,29 @@
-# LibreTube (Local Edition)
+# LTE (LibreTube Edition)
 
-A local-only Android client for YouTube, forked from LibreTube. This version removes all dependencies on Piped instances, ensuring all data (subscriptions, history, playlists) is stored and managed locally on the device using a Room database.
+A strictly local-only Android client for YouTube, built on modern Android tech. This project is a hard fork of LibreTube that removes all Piped instance dependencies in favor of a completely offline, device-centric database approach.
 
-## Technical Overview
+## Key Features
 
-This fork diverges from the upstream LibreTube project by enforcing a strict "Local Mode."
+### 🚀 Modern Tech Stack
+*   **Jetpack Compose Player**: The video player has been completely rewritten from scratch using Jetpack Compose, `AnchorDraggable`, and `Media3`/`ExoPlayer` for a fluid, gesture-driven experience.
+*   **Local-First Architecture**: All subscriptions, playlists, and watch history are stored in a local Room database. No account required, no external server tracking.
+*   **Material 3**: Fully compliant Material 3 UI with dynamic colors and modern components.
 
-*   **Network**: Piped API usage for account management, subscriptions, and playlists has been completely removed. Network requests are limited to media retrieval (streams, subtitles, DeArrow, SponsorBlock).
-*   **Data Persistence**: All user data is persisted in a local SQLite database (via Android Room).
-*   **Localization**: The application is English-only. All other `values-*` resource directories and locale-switching logic have been removed to reduce APK size and simplified maintenance.
-*   **Import/Export**: Supports importing subscriptions from JSON/CSV and exporting the entire database to a local file.
+### 📺 Media Experience
+*   **DeArrow Integration**: Built-in support for crowdsourced titles and thumbnails to remove clickbait.
+*   **SponsorBlock**: Automatically skips sponsored segments.
+*   **Audio/Video Toggle**: Seamlessly switch between video and audio-only modes directly from the player.
+*   **Background Play**: Robust background playback service with media notification controls.
 
-## Features
+### 🛠️ Advanced Tools
+*   **Log Viewer**: Integrated in-app log viewer for real-time debugging.
+*   **Database Backup**: Automatic daily backups of your library and history.
+*   **English Only**: Stripped of all localization to strictly minimize APK size and complexity.
 
-### Core Functionality
-*   **Local Subscription Management**: Subscribe to channels without an account. Subscriptions are stored in the local database.
-*   **Local Playlists**: Create and manage mixed-content playlists (videos and audio) locally.
-*   **Watch History**: Local SQlite-based watch history with search and individual item deletion.
-*   **Background Sync**: Implements a `WorkManager` task to periodically update metadata (video counts, thumbnails) for bookmarked playlists.
-
-### User Interface
-*   **Material 3 Design**: UI implementation follows Material 3 guidelines.
-*   **Layout**: Horizontal `RecyclerView` shelves for Home, Trending, and Library views.
-*   **Navigation**: Simplified settings hierarchy with indexed search functionality.
-*   **Video/Audio Toggle**: Inline switch in the player view to toggle between video rendering (ExoPlayer) and audio-only mode.
-
-### Integrations
-*   **DeArrow**: Client-side integration to fetch and display community-submitted titles and thumbnails.
-*   **SponsorBlock**: Skips sponsored segments via the SponsorBlock API.
-*   **Return YouTube Dislike**: Displays dislike counts using the RYD API.
-
-### Utility
-*   **Automated Backups**: Configurable daily backups of the app database to local storage.
-*   **Log Viewer**: Internal log viewer for debugging runtime errors (Player, Downloader, General).
-*   **Update Checker**: Checks this repository for new releases and supports background update polling.
+## Project Structure
+*   **Repo**: [https://github.com/akashsriramganapathy/LTE](https://github.com/akashsriramganapathy/LTE)
+*   **Status**: Active Development (Experimental)
 
 ## Credits
-
-*   **Development**: This fork was architected and built using Artificial Intelligence.
-*   Upstream: [LibreTube](https://github.com/libre-tube/LibreTube) by [Bnyro](https://github.com/Bnyro)
-*   DeArrow Integration Logic
-*   SponsorBlock API
-
-## License
-
-GNU General Public License v3.0
+*   **Development**: Architected and built with standard-setting AI coding workflows.
+*   **Upstream**: Forked from [LibreTube](https://github.com/libre-tube/LibreTube).
