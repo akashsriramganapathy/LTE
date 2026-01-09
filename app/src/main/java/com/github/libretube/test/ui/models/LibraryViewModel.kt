@@ -2,7 +2,6 @@ package com.github.libretube.test.ui.models
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.github.libretube.test.api.PlaylistsHelper
 import com.github.libretube.test.api.obj.Playlists
@@ -13,32 +12,51 @@ import com.github.libretube.test.db.obj.WatchHistoryItem
 import com.github.libretube.test.helpers.PreferenceHelper
 import com.github.libretube.test.constants.PreferenceKeys
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class LibraryViewModel(application: Application) : AndroidViewModel(application) {
+    private val _historyItems = MutableStateFlow<List<WatchHistoryItem>>(emptyList())
+    val historyItems = _historyItems.asStateFlow()
 
-    
+    private val _historyCount = MutableStateFlow(0)
+    val historyCount = _historyCount.asStateFlow()
 
-    val historyItems = MutableLiveData<List<WatchHistoryItem>>(emptyList())
-    val historyCount = MutableLiveData(0)
-    val downloadCount = MutableLiveData(0)
-    val playlists = MutableLiveData<List<Playlists>>(emptyList())
-    val bookmarks = MutableLiveData<List<PlaylistBookmark>>(emptyList())
-    val isRefreshing = MutableLiveData(false)
+    private val _downloadCount = MutableStateFlow(0)
+    val downloadCount = _downloadCount.asStateFlow()
+
+    private val _playlists = MutableStateFlow<List<Playlists>>(emptyList())
+    val playlists = _playlists.asStateFlow()
+
+    private val _bookmarks = MutableStateFlow<List<PlaylistBookmark>>(emptyList())
+    val bookmarks = _bookmarks.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
+
+    private val _isReorderMode = MutableStateFlow(false)
+    val isReorderMode = _isReorderMode.asStateFlow()
+
+    private val _reorderPlaylists = MutableStateFlow<List<Playlists>>(emptyList())
+    val reorderPlaylists = _reorderPlaylists.asStateFlow()
+
+    private val _reorderBookmarks = MutableStateFlow<List<PlaylistBookmark>>(emptyList())
+    val reorderBookmarks = _reorderBookmarks.asStateFlow()
 
     fun refreshData() {
-        isRefreshing.value = true
+        _isRefreshing.value = true
         viewModelScope.launch {
             val historyLatest = withContext(Dispatchers.IO) {
                 DatabaseHelper.getWatchHistoryPage(1, 10)
             }
-            historyItems.postValue(historyLatest)
+            _historyItems.value = historyLatest
 
             val totalHistorySize = withContext(Dispatchers.IO) {
                 DatabaseHolder.Database.watchHistoryDao().getSize()
             }
-            historyCount.postValue(totalHistorySize)
+            _historyCount.value = totalHistorySize
 
             val downloads = withContext(Dispatchers.IO) {
                 val db = DatabaseHolder.Database
@@ -50,7 +68,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 cursor.close()
                 count
             }
-            downloadCount.postValue(downloads)
+            _downloadCount.value = downloads
 
             val pLists = withContext(Dispatchers.IO) {
                 try {
@@ -59,15 +77,13 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                     emptyList()
                 }
             }
-            
+            _playlists.value = pLists
+
             val bMarks = withContext(Dispatchers.IO) {
                 val rawBookmarks = DatabaseHolder.Database.playlistBookmarkDao().getAll()
                 val bookmarks = com.github.libretube.test.util.DeArrowUtil.deArrowPlaylistBookmarks(rawBookmarks)
                 
-                when (com.github.libretube.test.helpers.PreferenceHelper.getString(
-                    com.github.libretube.test.constants.PreferenceKeys.PLAYLISTS_ORDER, 
-                    "creation_date"
-                )) {
+                when (PreferenceHelper.getString(PreferenceKeys.PLAYLISTS_ORDER, "creation_date")) {
                     "alphabetic" -> bookmarks.sortedBy { it.playlistName?.lowercase() }
                     "alphabetic_reversed" -> bookmarks.sortedByDescending { it.playlistName?.lowercase() }
                     "creation_date" -> bookmarks.sortedBy { it.savedAt }
@@ -76,18 +92,15 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                     else -> bookmarks
                 }
             }
+            _bookmarks.value = bMarks
 
-            playlists.postValue(pLists)
-            bookmarks.postValue(bMarks)
-            isRefreshing.postValue(false)
+            _isRefreshing.value = false
             
-            // Sync bookmarks in background to update video counts/thumbnails
-            // This runs after the initial load to keep the UI responsive
+            // Sync bookmarks in background
             launch(Dispatchers.IO) {
                 try {
                     val updatedBookmarks = bMarks.mapNotNull { bookmark ->
                         try {
-                            // Only update remote playlists, not local ones if they somehow got here
                             if (!bookmark.playlistId.all { it.isDigit() }) {
                                 com.github.libretube.test.api.MediaServiceRepository.instance.getPlaylist(bookmark.playlistId).let { remotePlaylist ->
                                     bookmark.copy(
@@ -103,29 +116,71 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                                 null
                             }
                         } catch (e: Exception) {
-                            null // Skip failed updates
+                            null
                         }
                     }
 
                      if (updatedBookmarks.isNotEmpty()) {
-                         DatabaseHolder.Database.playlistBookmarkDao().insertAll(updatedBookmarks)
-                         val rawBookmarks = DatabaseHolder.Database.playlistBookmarkDao().getAll()
-                         val refreshedBookmarks = com.github.libretube.test.util.DeArrowUtil.deArrowPlaylistBookmarks(rawBookmarks)
-                         
-                         val sortedBookmarks = when (PreferenceHelper.getString(PreferenceKeys.PLAYLISTS_ORDER, "creation_date")) {
-                            "alphabetic" -> refreshedBookmarks.sortedBy { it.playlistName?.lowercase() }
-                            "alphabetic_reversed" -> refreshedBookmarks.sortedByDescending { it.playlistName?.lowercase() }
-                            "creation_date" -> refreshedBookmarks.sortedBy { it.savedAt }
-                            "creation_date_reversed" -> refreshedBookmarks.sortedByDescending { it.savedAt }
-                            "custom" -> refreshedBookmarks.sortedBy { it.orderIndex }
-                            else -> refreshedBookmarks
-                         }
-                         bookmarks.postValue(sortedBookmarks)
+                          DatabaseHolder.Database.playlistBookmarkDao().insertAll(updatedBookmarks)
+                          val rawBookmarks = DatabaseHolder.Database.playlistBookmarkDao().getAll()
+                          val refreshedBookmarks = com.github.libretube.test.util.DeArrowUtil.deArrowPlaylistBookmarks(rawBookmarks)
+                          
+                          val sortedBookmarks = when (PreferenceHelper.getString(PreferenceKeys.PLAYLISTS_ORDER, "creation_date")) {
+                             "alphabetic" -> refreshedBookmarks.sortedBy { it.playlistName?.lowercase() }
+                             "alphabetic_reversed" -> refreshedBookmarks.sortedByDescending { it.playlistName?.lowercase() }
+                             "creation_date" -> refreshedBookmarks.sortedBy { it.savedAt }
+                             "creation_date_reversed" -> refreshedBookmarks.sortedByDescending { it.savedAt }
+                             "custom" -> refreshedBookmarks.sortedBy { it.orderIndex }
+                             else -> refreshedBookmarks
+                          }
+                          _bookmarks.value = sortedBookmarks
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
+        }
+    }
+
+    fun toggleReorderMode(initialListPlaylists: List<Playlists>? = null, initialListBookmarks: List<PlaylistBookmark>? = null) {
+        _isReorderMode.value = !_isReorderMode.value
+        if (_isReorderMode.value) {
+            _reorderPlaylists.value = initialListPlaylists ?: _playlists.value
+            _reorderBookmarks.value = initialListBookmarks ?: _bookmarks.value
+        }
+    }
+
+    fun onItemMovePlaylists(from: Int, to: Int) {
+        val list = _reorderPlaylists.value.toMutableList()
+        if (from in list.indices && to in list.indices) {
+            val item = list.removeAt(from)
+            list.add(to, item)
+            _reorderPlaylists.value = list
+        }
+    }
+
+    fun onItemMoveBookmarks(from: Int, to: Int) {
+        val list = _reorderBookmarks.value.toMutableList()
+        if (from in list.indices && to in list.indices) {
+            val item = list.removeAt(from)
+            list.add(to, item)
+            _reorderBookmarks.value = list
+        }
+    }
+
+    fun saveReorder(isPlaylists: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _isReorderMode.value = false
+            if (isPlaylists) {
+                val ids = _reorderPlaylists.value.mapNotNull { it.id }
+                PlaylistsHelper.updateLocalPlaylistOrder(ids)
+            } else {
+                val ids = _reorderBookmarks.value.map { it.playlistId }
+                PlaylistsHelper.updateBookmarkOrder(ids)
+            }
+            PreferenceHelper.putString(PreferenceKeys.PLAYLISTS_ORDER, "custom")
+            // refreshData() will be called automatically or manually
+            refreshData()
         }
     }
 }

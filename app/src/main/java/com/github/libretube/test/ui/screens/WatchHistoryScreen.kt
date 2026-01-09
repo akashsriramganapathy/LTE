@@ -1,13 +1,20 @@
 package com.github.libretube.test.ui.screens
 
 import android.text.format.DateUtils
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,127 +29,147 @@ import com.github.libretube.test.R
 import com.github.libretube.test.db.obj.WatchHistoryItem
 import com.github.libretube.test.ui.components.VideoCard
 import com.github.libretube.test.ui.components.VideoCardState
-import com.github.libretube.test.util.TextUtils
+import com.github.libretube.test.ui.models.WatchHistoryModel
 import kotlinx.coroutines.flow.collectLatest
+import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun WatchHistoryScreen(
-    history: List<WatchHistoryItem>,
-    selectedStatusFilter: Int,
-    onFilterChanged: (Int) -> Unit,
+    viewModel: WatchHistoryModel,
+    onBackClick: () -> Unit,
     onItemClick: (WatchHistoryItem) -> Unit,
     onItemLongClick: (WatchHistoryItem) -> Unit,
-    onItemDismissed: (WatchHistoryItem) -> Unit,
     onClearHistoryClick: () -> Unit,
     onPlayAllClick: () -> Unit,
-    onLoadMore: () -> Unit,
-    isMiniPlayerVisible: Boolean,
-    modifier: Modifier = Modifier
+    isMiniPlayerVisible: Boolean
 ) {
+    val history by viewModel.filteredWatchHistory.collectAsState()
+    val groupedHistory by viewModel.groupedWatchHistory.collectAsState()
+    val selectedStatusFilter by viewModel.selectedStatus.collectAsState()
+    val isMultiSelectMode by viewModel.isMultiSelectMode.collectAsState()
+    val selectedItems by viewModel.selectedItems.collectAsState()
+    
     val listState = rememberLazyListState()
 
-    // Load more when scrolled to bottom
+    // Loading next page
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo }.collectLatest { visibleItems ->
             val lastVisibleItem = visibleItems.lastOrNull()
             if (lastVisibleItem != null && lastVisibleItem.index >= history.size - 5) {
-                onLoadMore()
+                viewModel.fetchNextPage()
             }
         }
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = {
-            Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
-                // Filters
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val continueSelected = selectedStatusFilter == 0 || selectedStatusFilter == 1
-                    val finishedSelected = selectedStatusFilter == 0 || selectedStatusFilter == 2
+    if (isMultiSelectMode) {
+        BackHandler {
+            viewModel.toggleMultiSelectMode()
+        }
+    }
 
-                    FilterChip(
-                        selected = continueSelected,
-                        onClick = {
-                            val nextContinue = !continueSelected
-                            val nextFinished = finishedSelected
-                            val result = when {
-                                nextContinue && nextFinished -> 0
-                                nextContinue -> 1
-                                nextFinished -> 2
-                                else -> 0 // fallback
-                            }
-                            onFilterChanged(result)
-                        },
-                        label = { Text(stringResource(R.string.continue_watching)) }
-                    )
-                    FilterChip(
-                        selected = finishedSelected,
-                        onClick = {
-                            val nextContinue = continueSelected
-                            val nextFinished = !finishedSelected
-                            val result = when {
-                                nextContinue && nextFinished -> 0
-                                nextContinue -> 1
-                                nextFinished -> 2
-                                else -> 0 // fallback
-                            }
-                            onFilterChanged(result)
-                        },
-                        label = { Text(stringResource(R.string.finished)) }
-                    )
-                }
+    Scaffold(
+        topBar = {
+            if (isMultiSelectMode) {
+                TopAppBar(
+                    title = { Text("${selectedItems.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.toggleMultiSelectMode() }) {
+                            Icon(Icons.Default.Close, contentDescription = null)
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { viewModel.deleteSelectedItems() }) {
+                            Icon(Icons.Default.Delete, contentDescription = null)
+                        }
+                    }
+                )
+            } else {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.watch_history)) },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = null)
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onClearHistoryClick) {
+                            Icon(painterResource(R.drawable.ic_delete), contentDescription = null)
+                        }
+                        IconButton(onClick = onPlayAllClick) {
+                            Icon(painterResource(R.drawable.ic_play), contentDescription = null)
+                        }
+                    }
+                )
             }
         },
         floatingActionButton = {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                if (history.isNotEmpty()) {
-                    SmallFloatingActionButton(
-                        onClick = onClearHistoryClick,
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    ) {
-                        Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.clear_history))
-                    }
-                    FloatingActionButton(onClick = onPlayAllClick) {
-                        Icon(painterResource(R.drawable.ic_play), contentDescription = stringResource(R.string.play_all))
-                    }
+            if (!isMultiSelectMode && !isMiniPlayerVisible && history.isNotEmpty()) {
+                FloatingActionButton(onClick = onPlayAllClick) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null)
                 }
             }
         }
-    ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
+    ) { padding ->
+        Box(modifier = Modifier.padding(padding)) {
             if (history.isEmpty()) {
-                EmptyHistoryState()
+                WatchHistoryEmptyView()
             } else {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        bottom = if (isMiniPlayerVisible) 80.dp else 16.dp
-                    )
+                    contentPadding = PaddingValues(bottom = if (isMiniPlayerVisible) 80.dp else 16.dp)
                 ) {
-                    // Filter Chips as a header or top bar is better, but here I'll use a persistent Row above LazyColumn
-                    // Wait, Scaffold topBar is better. I'll move chips there or as a stickyHeader.
-                    
-                    itemsIndexed(
-                        items = history,
-                        key = { _, item -> item.videoId }
-                    ) { _, item ->
-                        WatchHistorySwipeItem(
-                            item = item,
-                            onClick = { onItemClick(item) },
-                            onLongClick = { onItemLongClick(item) },
-                            onDismissed = { onItemDismissed(item) }
+                    // Filter Chips as first item
+                    item {
+                        HistoryFilters(
+                            selectedFilter = selectedStatusFilter,
+                            onFilterChanged = { viewModel.selectedStatusFilter = it }
                         )
+                    }
+
+                    groupedHistory.forEach { (date, items) ->
+                        // The key used here is "date", which is unique per day.
+                        stickyHeader(key = date) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
+                            ) {
+                                Text(
+                                    text = date,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        itemsIndexed(
+                            items = items,
+                            key = { _, item -> item.videoId }
+                        ) { _, item ->
+                            val isSelected = selectedItems.contains(item.videoId)
+                            
+                            WatchHistorySwipeItem(
+                                item = item,
+                                isSelected = isSelected,
+                                isMultiSelectMode = isMultiSelectMode,
+                                onClick = {
+                                    if (isMultiSelectMode) viewModel.toggleItemSelection(item.videoId)
+                                    else onItemClick(item)
+                                },
+                                onLongClick = {
+                                    if (!isMultiSelectMode) {
+                                        viewModel.toggleMultiSelectMode()
+                                        viewModel.toggleItemSelection(item.videoId)
+                                    } else {
+                                        onItemLongClick(item)
+                                    }
+                                },
+                                onDismissed = { viewModel.removeFromHistory(item) }
+                            )
+                        }
                     }
                 }
             }
@@ -150,10 +177,52 @@ fun WatchHistoryScreen(
     }
 }
 
+@Composable
+private fun HistoryFilters(
+    selectedFilter: Int,
+    onFilterChanged: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        FilterChip(
+            selected = selectedFilter == 1 || selectedFilter == 0,
+            onClick = {
+                val next = when (selectedFilter) {
+                    0 -> 2
+                    1 -> 0
+                    2 -> 0
+                    else -> 0
+                }
+                onFilterChanged(next)
+            },
+            label = { Text(stringResource(R.string.continue_watching)) }
+        )
+        FilterChip(
+            selected = selectedFilter == 2 || selectedFilter == 0,
+            onClick = {
+                val next = when (selectedFilter) {
+                    0 -> 1
+                    1 -> 0
+                    2 -> 0
+                    else -> 0
+                }
+                onFilterChanged(next)
+            },
+            label = { Text(stringResource(R.string.finished)) }
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WatchHistorySwipeItem(
     item: WatchHistoryItem,
+    isSelected: Boolean,
+    isMultiSelectMode: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onDismissed: () -> Unit
@@ -163,9 +232,7 @@ fun WatchHistorySwipeItem(
             if (it == SwipeToDismissBoxValue.EndToStart) {
                 onDismissed()
                 true
-            } else {
-                false
-            }
+            } else false
         }
     )
 
@@ -174,52 +241,52 @@ fun WatchHistorySwipeItem(
         enableDismissFromStartToEnd = false,
         backgroundContent = {
             val color by animateColorAsState(
-                when (dismissState.targetValue) {
-                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
-                    else -> Color.Transparent
-                }, label = "dismiss_color"
+                if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) MaterialTheme.colorScheme.error
+                else Color.Transparent, label = ""
             )
             Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(color)
-                    .padding(horizontal = 20.dp),
+                Modifier.fillMaxSize().background(color).padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                Icon(
-                    painterResource(R.drawable.ic_delete),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onError
-                )
+                Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
             }
         },
         content = {
-            val durationText = when {
-                item.isLive -> stringResource(R.string.live)
-                item.duration != null -> DateUtils.formatElapsedTime(item.duration)
-                else -> ""
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
+                    .clickable(onClick = onClick)
+                    .padding(horizontal = if (isMultiSelectMode) 8.dp else 0.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isMultiSelectMode) {
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = { onClick() }
+                    )
+                }
+                
+                VideoCard(
+                    state = VideoCardState(
+                        videoId = item.videoId,
+                        title = item.title ?: "",
+                        uploaderName = item.uploader ?: "",
+                        views = "", 
+                        duration = item.duration?.let { DateUtils.formatElapsedTime(it) } ?: "",
+                        thumbnailUrl = item.thumbnailUrl ?: "",
+                        uploaderAvatarUrl = item.uploaderAvatar
+                    ),
+                    onClick = onClick,
+                    onLongClick = onLongClick
+                )
             }
-            
-            VideoCard(
-                state = VideoCardState(
-                    videoId = item.videoId,
-                    title = item.title ?: "",
-                    uploaderName = item.uploader ?: "",
-                    views = item.uploadDate?.let { TextUtils.localizeDate(it) } ?: "",
-                    duration = durationText,
-                    thumbnailUrl = item.thumbnailUrl ?: "",
-                    uploaderAvatarUrl = item.uploaderAvatar
-                ),
-                onClick = onClick,
-                onLongClick = onLongClick,
-                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-            )
         }
     )
 }
 
 @Composable
-fun EmptyHistoryState() {
+fun WatchHistoryEmptyView() {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -229,13 +296,13 @@ fun EmptyHistoryState() {
             painter = painterResource(R.drawable.ic_history),
             contentDescription = null,
             modifier = Modifier.size(100.dp),
-            tint = MaterialTheme.colorScheme.outline
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = stringResource(R.string.history_empty),
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(horizontal = 16.dp)
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

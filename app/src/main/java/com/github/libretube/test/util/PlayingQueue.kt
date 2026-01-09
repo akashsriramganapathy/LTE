@@ -12,10 +12,20 @@ import com.github.libretube.test.util.PlayingQueue.queueMode
 import kotlinx.coroutines.Job
 import java.util.Collections
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
 object PlayingQueue {
     // queue is a synchronized list to be safely accessible from different coroutine threads
     private val queue = Collections.synchronizedList(mutableListOf<StreamItem>())
     private var currentStream: StreamItem? = null
+
+    private val _queueState = MutableStateFlow<List<StreamItem>>(emptyList())
+    val queueState = _queueState.asStateFlow()
+
+    private fun updateState() {
+        _queueState.value = queue.toList()
+    }
 
     private val queueJobs = mutableListOf<Job>()
 
@@ -43,6 +53,7 @@ object PlayingQueue {
         clearJobs()
         queue.clear()
         currentStream = null
+        updateState()
     }
 
     /**
@@ -56,6 +67,7 @@ object PlayingQueue {
             val newQueue = queue.filterIndexed { index, item -> index <= currentIndex() }
             setStreams(newQueue)
         }
+        updateState()
     }
 
     /**
@@ -68,12 +80,14 @@ object PlayingQueue {
             queue.remove(stream)
             queue.add(stream)
         }
+        updateState()
     }
 
     fun addAsNext(streamItem: StreamItem) = synchronized(queue) {
         if (currentStream == streamItem) return
         if (queue.contains(streamItem)) queue.remove(streamItem)
         queue.add(currentIndex() + 1, streamItem)
+        updateState()
     }
 
     // return the next item, or if repeating enabled and no video left, the first one of the queue
@@ -133,15 +147,18 @@ object PlayingQueue {
         queue.clear()
 
         queue.addAll(streams)
+        updateState()
     }
 
     fun remove(index: Int) = synchronized(queue) {
         queue.removeAt(index)
+        updateState()
         return@synchronized
     }
 
     fun move(from: Int, to: Int) = synchronized(queue) {
         queue.move(from, to)
+        updateState()
     }
 
     /**

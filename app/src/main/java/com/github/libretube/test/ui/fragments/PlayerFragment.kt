@@ -72,6 +72,7 @@ class PlayerFragment : Fragment(), OnlinePlayerOptions {
             maybeStreams?.let { 
                 streams = it
                 viewModel.updateMetadata(it.title ?: "", it.uploader ?: "")
+                viewModel.updateChapters(it.chapters)
             }
         }
     }
@@ -115,15 +116,22 @@ class PlayerFragment : Fragment(), OnlinePlayerOptions {
                 delay(1000)
             }
         }
+        
+        // Observe Play Video Trigger
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.playVideoTrigger.collect { streamItem ->
+                streamItem.url?.let { playNextVideo(it) }
+            }
+        }
     }
 
-    private fun attachToPlayerService(playerData: PlayerData, startNewSession: Boolean) {
+    private fun attachToPlayerService(playerData: PlayerData, startNewSession: Boolean, audioOnly: Boolean = false) {
         BackgroundHelper.startMediaService(
             requireContext(),
             OnlinePlayerService::class.java,
             if (startNewSession) bundleOf(
                 IntentData.playerData to playerData,
-                IntentData.audioOnly to false
+                IntentData.audioOnly to audioOnly
             ) else Bundle.EMPTY,
         ) { controller ->
             playerController = controller
@@ -140,6 +148,7 @@ class PlayerFragment : Fragment(), OnlinePlayerOptions {
                 if (restoredStreams != null) {
                     streams = restoredStreams
                     viewModel.updateMetadata(restoredStreams.title ?: "", restoredStreams.uploader ?: "")
+                    viewModel.updateChapters(restoredStreams.chapters)
                 }
             }
         }
@@ -193,11 +202,15 @@ class PlayerFragment : Fragment(), OnlinePlayerOptions {
     }
 
     fun playNextVideo(videoId: String) {
-        // TODO: Implement playback logic
+        val playerData = PlayerData(videoId = videoId)
+        attachToPlayerService(playerData, startNewSession = true)
     }
 
     fun switchToAudioMode() {
-        // TODO: Switch to audio
+        if (videoId.isNotEmpty()) {
+            val playerData = PlayerData(videoId = videoId)
+            attachToPlayerService(playerData, startNewSession = true, audioOnly = true)
+        }
     }
 
     fun maximize() {
@@ -205,6 +218,6 @@ class PlayerFragment : Fragment(), OnlinePlayerOptions {
     }
 
     fun minimize() {
-        // TODO: Collapse player
+        viewModel.triggerPlayerCollapse()
     }
 }

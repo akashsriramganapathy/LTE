@@ -9,12 +9,21 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 
 object RoomPreferenceDataStore : PreferenceDataStore() {
     private val cache = ConcurrentHashMap<String, String>()
     private val scope = CoroutineScope(Dispatchers.IO)
     private var isInitialized = false
     private var initJob: kotlinx.coroutines.Job? = null
+
+    private val _preferenceFlow = MutableSharedFlow<String>(extraBufferCapacity = 64)
+    val preferenceFlow = _preferenceFlow.asSharedFlow()
 
     fun initializeAsync() {
         if (isInitialized || initJob?.isActive == true) return
@@ -23,6 +32,21 @@ object RoomPreferenceDataStore : PreferenceDataStore() {
             loadCache()
         }
     }
+
+    fun getStringFlow(key: String, defValue: String?): Flow<String?> = preferenceFlow
+        .filter { it == key || it == "*" }
+        .onStart { emit(key) }
+        .map { getString(key, defValue) }
+
+    fun getBooleanFlow(key: String, defValue: Boolean): Flow<Boolean> = preferenceFlow
+        .filter { it == key || it == "*" }
+        .onStart { emit(key) }
+        .map { getBoolean(key, defValue) }
+
+    fun getIntFlow(key: String, defValue: Int): Flow<Int> = preferenceFlow
+        .filter { it == key || it == "*" }
+        .onStart { emit(key) }
+        .map { getInt(key, defValue) }
 
     /**
      * Synchronously load the cache from the database.
@@ -142,6 +166,7 @@ object RoomPreferenceDataStore : PreferenceDataStore() {
                 }
             }
         }
+        _preferenceFlow.tryEmit(key)
     }
     
     fun clear() {
@@ -153,6 +178,7 @@ object RoomPreferenceDataStore : PreferenceDataStore() {
                 com.github.libretube.logger.FileLogger.e("RoomDataStore", "Failed to clear preferences", e)
             }
         }
+        _preferenceFlow.tryEmit("*")
     }
 }
 

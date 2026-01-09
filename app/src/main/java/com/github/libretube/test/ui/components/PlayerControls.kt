@@ -16,13 +16,16 @@ import com.github.libretube.test.ui.models.PlayerViewModel
 @Composable
 fun PlayerControls(
     viewModel: PlayerViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onQueueClick: () -> Unit,
+    onChaptersClick: () -> Unit
 ) {
     val isPlaying by viewModel.isPlaying.collectAsState()
     val currentPosition by viewModel.currentPosition.collectAsState()
     val duration by viewModel.duration.collectAsState()
     val title by viewModel.title.collectAsState()
     val uploader by viewModel.uploader.collectAsState()
+    val chapters by viewModel.chapters.collectAsState()
     
     // Local state for seeking to ensure smooth slider movement
     var isSeeking by remember { mutableStateOf(false) }
@@ -85,6 +88,21 @@ fun PlayerControls(
 
         // Bottom Controls (Seekbar, Time)
         Column {
+             // Extra Actions Row (Queue, Chapters)
+             Row(
+                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                 horizontalArrangement = Arrangement.SpaceEvenly
+             ) {
+                 IconButton(onClick = onQueueClick) {
+                     Icon(Icons.Default.List, contentDescription = "Queue", tint = Color.White)
+                 }
+                 if (chapters.isNotEmpty()) {
+                     IconButton(onClick = onChaptersClick) {
+                         Icon(Icons.Default.Menu, contentDescription = "Chapters", tint = Color.White)
+                     }
+                 }
+             }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween

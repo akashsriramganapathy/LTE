@@ -6,10 +6,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.animateTo
+import androidx.compose.foundation.gestures.snapTo
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -26,20 +29,23 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.compose.ui.zIndex
 import com.github.libretube.test.ui.models.PlayerViewModel
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
 import androidx.compose.ui.viewinterop.AndroidView
 import com.github.libretube.test.ui.components.PlayerControls
+import com.github.libretube.test.ui.sheets.QueueSheet
+import com.github.libretube.test.ui.sheets.ChaptersSheet
+import com.github.libretube.test.api.obj.StreamItem
+import com.github.libretube.test.api.obj.ChapterSegment
 
 enum class PlayerState {
     Collapsed,
     Expanded
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
     playerViewModel: PlayerViewModel,
@@ -73,21 +79,69 @@ fun PlayerScreen(
     // Back Handling
     BackHandler(enabled = draggableState.currentValue == PlayerState.Expanded) {
         scope.launch {
-            // draggableState.snapTo(PlayerState.Collapsed) // TODO: Fix unresolved reference
+            draggableState.animateTo(PlayerState.Collapsed)
+        }
+    }
+
+    // Movable Player Surface to prevent re-inflation
+    val movableVideoSurface = remember(playerViewModel) {
+        movableContentOf { modifier: Modifier ->
+            VideoSurface(modifier = modifier, viewModel = playerViewModel)
+        }
+    }
+
+    // Observe Minimize/Maximize Commands
+    LaunchedEffect(playerViewModel) {
+        playerViewModel.expandPlayerTrigger.collect {
+            draggableState.animateTo(PlayerState.Expanded)
+        }
+    }
+    LaunchedEffect(playerViewModel) {
+        playerViewModel.collapsePlayerTrigger.collect {
+            draggableState.animateTo(PlayerState.Collapsed)
         }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            // Touch pass-through: If collapsed, the background is transparent and should not consume clicks
-            // The Box itself doesn't have a background, so clicks pass through unless hit by children
     ) {
+        val queue by playerViewModel.queue.collectAsState()
+        val chapters by playerViewModel.chapters.collectAsState()
+        
+        var showQueue by remember { mutableStateOf(false) }
+        var showChapters by remember { mutableStateOf(false) }
+
         DraggablePlayerPanel(
             state = draggableState,
             onClose = onClose,
-            viewModel = playerViewModel
+            viewModel = playerViewModel,
+            videoSurface = movableVideoSurface,
+            onQueueClick = { showQueue = true },
+            onChaptersClick = { showChapters = true }
         )
+
+        if (showQueue) {
+            QueueSheet(
+                queue = queue,
+                onItemClick = { item -> 
+                    showQueue = false
+                    playerViewModel.onQueueItemClicked(item)
+                },
+                onDismissRequest = { showQueue = false }
+            )
+        }
+
+        if (showChapters) {
+            ChaptersSheet(
+                chapters = chapters,
+                onChapterClick = { chapter ->
+                    showChapters = false
+                    playerViewModel.seekTo(chapter.start * 1000)
+                },
+                onDismissRequest = { showChapters = false }
+            )
+        }
     }
 }
 
@@ -95,13 +149,17 @@ fun PlayerScreen(
 fun FullPlayerContent(
     viewModel: PlayerViewModel,
     modifier: Modifier = Modifier,
-    alpha: Float
+    alpha: Float,
+    onQueueClick: () -> Unit,
+    onChaptersClick: () -> Unit
 ) {
     if (alpha > 0f) {
         Column(modifier = modifier.alpha(alpha).padding(top = 250.dp)) { // Padding for video area
              PlayerControls(
                 viewModel = viewModel,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onQueueClick = onQueueClick,
+                onChaptersClick = onChaptersClick
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text("Full Player Details", modifier = Modifier.padding(16.dp))
@@ -144,64 +202,83 @@ fun VideoSurface(
 fun DraggablePlayerPanel(
     state: AnchoredDraggableState<PlayerState>,
     onClose: () -> Unit,
-    viewModel: PlayerViewModel
+    viewModel: PlayerViewModel,
+    videoSurface: @Composable (Modifier) -> Unit,
+    onQueueClick: () -> Unit,
+    onChaptersClick: () -> Unit
 ) {
     val offset = state.requireOffset()
-    // Progress: 0.0 (Expanded) -> 1.0 (Collapsed)
-    // Note: state.anchors.positionOf(PlayerState.Collapsed) is the MAX offset (bottom)
     val maxOffset = state.anchors.positionOf(PlayerState.Collapsed)
     val progress = (offset / maxOffset).coerceIn(0f, 1f)
     
-    // Performance: Use layout offset instead of generic modifiers for the container
+    val screenWidth = LocalContext.current.resources.displayMetrics.widthPixels.dp
+    val miniWidth = 120.dp
+    val miniHeight = 67.5.dp
+    val fullWidth = screenWidth
+    val fullHeight = screenWidth * 9f / 16f
+
     Box(
         modifier = Modifier
             .offset { IntOffset(x = 0, y = offset.roundToInt()) }
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface) // Background for the player itself
+            .background(MaterialTheme.colorScheme.surface)
             .anchoredDraggable(
                 state = state,
                 orientation = Orientation.Vertical
             )
     ) {
-        val density = LocalDensity.current
-        val screenWidth = LocalContext.current.resources.displayMetrics.widthPixels.dp
+        val scaleX = androidx.compose.ui.util.lerp(1f, miniWidth.value / fullWidth.value, progress)
+        val scaleY = androidx.compose.ui.util.lerp(1f, miniHeight.value / fullHeight.value, progress)
         
-        // Video Morphing Calculations
-        // Collapsed: Width = 120dp, Height = 68dp (16:9), X = 0, Y = 0 (relative to container)
-        // Expanded: Width = ScreenWidth, Height = ScreenWidth * 9/16, X = 0, Y = 0
-        
-        val miniWidth = 120.dp
-        val miniHeight = 67.5.dp // 16:9 of 120
-        val fullWidth = screenWidth
-        val fullHeight = screenWidth * 9f / 16f
-        
-        // Interpolate size
-        val currentWidth by remember(progress) { derivedStateOf { androidx.compose.ui.unit.lerp(fullWidth, miniWidth, progress) } }
-        val currentHeight by remember(progress) { derivedStateOf { androidx.compose.ui.unit.lerp(fullHeight, miniHeight, progress) } }
-        
-        VideoSurface(
+        // Video container with graphicsLayer for high-performance scaling
+        Box(
             modifier = Modifier
-                .size(currentWidth, currentHeight)
-                .zIndex(1f), // Video always on top
-            viewModel = viewModel
-        )
+                .wrapContentSize(Alignment.TopStart)
+                .graphicsLayer {
+                    this.scaleX = scaleX
+                    this.scaleY = scaleY
+                    this.transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f)
+                }
+                .zIndex(1f)
+        ) {
+            // Apply inverse scale to video surface to prevent aspect-ratio distortion (squashing)
+            videoSurface(
+                Modifier
+                    .size(fullWidth, fullHeight)
+                    .graphicsLayer {
+                        this.scaleX = 1f / scaleX
+                        this.scaleY = 1f / scaleY
+                        this.transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f)
+                    }
+            )
 
-        // Mini Player Content (Title, Play/Pause) - Fades in when collapsed
+            // Gesture Overlay: Captured in Mini Player mode to prevent SurfaceView touch swallowing
+            if (progress > 0.8f) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color.Transparent)
+                        .clickable(enabled = false) {} // Just to swallow/allow drag
+                )
+            }
+        }
+
         MiniPlayerContent(
             modifier = Modifier
-                .alpha(progress) // Visible when collapsed (1.0)
+                .alpha(progress)
                 .fillMaxWidth()
-                .height(68.dp)
-                .padding(start = miniWidth), // Offset content to right of video
+                .height(miniHeight)
+                .padding(start = miniWidth),
             onClose = onClose
         )
 
-        // Full Player Content (Controls, Details) - Fades in when expanded
         FullPlayerContent(
             viewModel = viewModel,
             modifier = Modifier
                 .fillMaxSize(),
-            alpha = 1f - progress // Visible when expanded (0.0)
+            alpha = (1f - progress * 2f).coerceIn(0f, 1f), // Fade out faster
+            onQueueClick = onQueueClick,
+            onChaptersClick = onChaptersClick
         )
     }
 }
@@ -217,9 +294,6 @@ fun MiniPlayerContent(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // We can access ViewModel here if we want real title (passed down or captured)
-        // For now, placeholder or needs refactor to pass title
-        // Let's use simple text for fix.
         Text("Mini Player", modifier = Modifier.weight(1f)) 
         
         IconButton(onClick = onClose) {
@@ -228,5 +302,4 @@ fun MiniPlayerContent(
     }
 }
 
-// Helper for alpha modifier
 fun Modifier.alpha(alpha: Float) = this.graphicsLayer(alpha = alpha)

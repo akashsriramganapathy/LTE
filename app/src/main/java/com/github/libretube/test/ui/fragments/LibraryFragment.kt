@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.os.bundleOf
@@ -58,12 +59,12 @@ class LibraryFragment : Fragment() {
 
     @Composable
     private fun LibraryContent() {
-        val historyItems by viewModel.historyItems.observeAsState(emptyList())
-        val historyCount by viewModel.historyCount.observeAsState(0)
-        val downloadCount by viewModel.downloadCount.observeAsState(0)
-        val playlists by viewModel.playlists.observeAsState(emptyList())
-        val bookmarks by viewModel.bookmarks.observeAsState(emptyList())
-        val isRefreshing by viewModel.isRefreshing.observeAsState(false)
+        val historyItems by viewModel.historyItems.collectAsState()
+        val historyCount by viewModel.historyCount.collectAsState()
+        val downloadCount by viewModel.downloadCount.collectAsState()
+        val playlists by viewModel.playlists.collectAsState()
+        val bookmarks by viewModel.bookmarks.collectAsState()
+        val isRefreshing by viewModel.isRefreshing.collectAsState()
 
         val watchHistoryEnabled = remember {
             PreferenceHelper.getBoolean(PreferenceKeys.WATCH_HISTORY_TOGGLE, true)

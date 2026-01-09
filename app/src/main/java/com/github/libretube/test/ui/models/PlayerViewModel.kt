@@ -11,9 +11,14 @@ import kotlinx.coroutines.launch
 import androidx.media3.session.MediaController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
+
+import com.github.libretube.test.util.PlayingQueue
+import com.github.libretube.test.api.obj.ChapterSegment
+import com.github.libretube.test.api.obj.StreamItem
 
 @UnstableApi
 class PlayerViewModel : ViewModel() {
@@ -24,6 +29,16 @@ class PlayerViewModel : ViewModel() {
     fun triggerPlayerExpansion() {
         _expandPlayerTrigger.trySend(Unit)
     }
+
+    private val _collapsePlayerTrigger = Channel<Unit>(Channel.BUFFERED)
+    val collapsePlayerTrigger = _collapsePlayerTrigger.receiveAsFlow()
+
+    fun triggerPlayerCollapse() {
+        _collapsePlayerTrigger.trySend(Unit)
+    }
+
+    private val _playVideoTrigger = Channel<StreamItem>(Channel.BUFFERED)
+    val playVideoTrigger = _playVideoTrigger.receiveAsFlow()
     
     private val _playerController = MutableStateFlow<MediaController?>(null)
     val playerController = _playerController.asStateFlow()
@@ -31,8 +46,6 @@ class PlayerViewModel : ViewModel() {
     fun setPlayerController(controller: MediaController?) {
         _playerController.value = controller
     }
-
-    // var playerController: MediaController? = null // Removed
 
     fun togglePlayPause() {
         playerController.value?.let {
@@ -67,6 +80,13 @@ class PlayerViewModel : ViewModel() {
     private val _uploader = MutableStateFlow("")
     val uploader = _uploader.asStateFlow()
 
+    // Queue (direct from singleton)
+    val queue = PlayingQueue.queueState
+
+    // Chapters
+    private val _chapters = MutableStateFlow<List<ChapterSegment>>(emptyList())
+    val chapters = _chapters.asStateFlow()
+
     fun updatePlaybackState(isPlaying: Boolean, position: Long, duration: Long) {
         _isPlaying.value = isPlaying
         _currentPosition.value = position
@@ -76,6 +96,14 @@ class PlayerViewModel : ViewModel() {
     fun updateMetadata(title: String, uploader: String) {
         _title.value = title
         _uploader.value = uploader
+    }
+    
+    fun onQueueItemClicked(item: StreamItem) {
+        _playVideoTrigger.trySend(item)
+    }
+
+    fun updateChapters(newChapters: List<ChapterSegment>) {
+        _chapters.value = newChapters
     }
 
     var segments = MutableLiveData<List<Segment>>()

@@ -47,11 +47,8 @@ android {
         val appName = if (releaseTag == "experimental") "LTE" else "test"
         resValue("string", "app_name", appName)
         val isExperimental = releaseTag == "experimental"
-        val isExperimental = releaseTag == "experimental"
         buildConfigField("boolean", "IS_EXPERIMENTAL", isExperimental.toString())
         
-        val googleApiKey = keystoreProperties["google.api.key"] as? String ?: "\"\""
-        buildConfigField("String", "GOOGLE_API_KEY", googleApiKey)
     }
 
     ksp {
@@ -168,6 +165,7 @@ dependencies {
     /* Android Lifecycle */
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.lifecycle.runtime)
+    implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.livedata)
     implementation(libs.lifecycle.service)
     implementation(libs.lifecycle.process)

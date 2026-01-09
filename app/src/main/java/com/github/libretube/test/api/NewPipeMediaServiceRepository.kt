@@ -25,7 +25,6 @@ import com.github.libretube.test.api.obj.StreamItem.Companion.TYPE_PLAYLIST
 import com.github.libretube.test.api.obj.StreamItem.Companion.TYPE_STREAM
 import com.github.libretube.test.api.obj.Streams
 import com.github.libretube.test.api.obj.Subtitle
-import com.github.libretube.test.api.poToken.PoTokenGenerator
 import com.github.libretube.test.extensions.sha256Sum
 import com.github.libretube.test.extensions.toID
 import com.github.libretube.test.helpers.NewPipeExtractorInstance
@@ -252,7 +251,6 @@ fun String.toListLinkHandler() = with(JsonHelper.json.decodeFromString<TabData>(
 
 class NewPipeMediaServiceRepository : MediaServiceRepository {
     init {
-        YoutubeStreamExtractor.setPoTokenProvider(PoTokenGenerator());
     }
 
     // see https://github.com/TeamNewPipe/NewPipeExtractor/tree/dev/extractor/src/main/java/org/schabi/newpipe/extractor/services/youtube/extractors/kiosk

@@ -7,17 +7,14 @@ import android.view.ViewGroup
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.room.withTransaction
-import com.github.libretube.test.api.obj.StreamItem
 import com.github.libretube.test.constants.IntentData
 import com.github.libretube.test.db.DatabaseHolder.Database
-import com.github.libretube.test.db.obj.WatchHistoryItem
 import com.github.libretube.test.helpers.NavigationHelper
 import com.github.libretube.test.ui.models.CommonPlayerViewModel
 import com.github.libretube.test.ui.models.WatchHistoryModel
@@ -39,7 +36,6 @@ class WatchHistoryFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         return ComposeView(requireContext()).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 LibreTubeTheme {
                     WatchHistoryContent()
@@ -50,15 +46,18 @@ class WatchHistoryFragment : Fragment() {
 
     @Composable
     private fun WatchHistoryContent() {
-        val history by viewModel.filteredWatchHistory.observeAsState(emptyList())
+        val history by viewModel.filteredWatchHistory.collectAsState()
         val isMiniPlayerVisible by commonPlayerViewModel.isMiniPlayerVisible.observeAsState(false)
         var showClearDialog by remember { mutableStateOf(false) }
 
         WatchHistoryScreen(
-            history = history,
-            selectedStatusFilter = viewModel.selectedStatusFilter,
-            onFilterChanged = { filter ->
-                viewModel.selectedStatusFilter = filter
+            viewModel = viewModel,
+            onBackClick = {
+                if (viewModel.isMultiSelectMode.value) {
+                    viewModel.toggleMultiSelectMode()
+                } else {
+                    requireActivity().onBackPressed()
+                }
             },
             onItemClick = { item ->
                 NavigationHelper.navigateVideo(requireContext(), item.videoId)
@@ -68,26 +67,19 @@ class WatchHistoryFragment : Fragment() {
                 sheet.arguments = bundleOf(IntentData.streamItem to item.toStreamItem())
                 sheet.show(childFragmentManager, WatchHistoryFragment::class.java.name)
             },
-            onItemDismissed = { item ->
-                viewModel.removeFromHistory(item)
-            },
             onClearHistoryClick = {
                 showClearDialog = true
             },
             onPlayAllClick = {
                 if (history.isNotEmpty()) {
-                    PlayingQueue.add(
-                        *history.reversed().map(WatchHistoryItem::toStreamItem).toTypedArray()
-                    )
+                    PlayingQueue.clear()
+                    PlayingQueue.add(*history.reversed().map { it.toStreamItem() }.toTypedArray())
                     NavigationHelper.navigateVideo(
                         requireContext(),
                         history.last().videoId,
                         keepQueue = true
                     )
                 }
-            },
-            onLoadMore = {
-                viewModel.fetchNextPage()
             },
             isMiniPlayerVisible = isMiniPlayerVisible
         )
@@ -113,4 +105,3 @@ class WatchHistoryFragment : Fragment() {
         viewModel.fetchNextPage()
     }
 }
-
