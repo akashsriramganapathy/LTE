@@ -18,7 +18,7 @@ import retrofit2.http.Query
 import retrofit2.http.Url
 import com.github.libretube.test.BuildConfig
 
-private const val GITHUB_API_URL = "https://api.github.com/repos/akashsriramganapathy/LibreTube/releases/latest"
+private const val GITHUB_API_URL = "https://api.github.com/repos/akashsriramganapathy/lte/releases/latest"
 private const val SB_API_URL = "https://sponsor.ajay.app"
 private const val RYD_API_URL = "https://returnyoutubedislikeapi.com"
 const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.3"
@@ -30,7 +30,7 @@ interface ExternalApi {
     @GET(GITHUB_API_URL)
     suspend fun getLatestRelease(): UpdateInfo
 
-    @GET("https://api.github.com/repos/akashsriramganapathy/LibreTube/releases/tags/{tag}")
+    @GET("https://api.github.com/repos/akashsriramganapathy/lte/releases/tags/{tag}")
     suspend fun getReleaseByTag(@Path("tag") tag: String): UpdateInfo
 
     @GET("$RYD_API_URL/votes")
