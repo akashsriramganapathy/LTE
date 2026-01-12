@@ -26,6 +26,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -38,13 +39,25 @@ import com.github.libretube.test.helpers.NavigationHelper
 import com.github.libretube.test.ui.components.VideoCard
 import com.github.libretube.test.ui.components.VideoCardState
 import com.github.libretube.test.util.TextUtils
-import kotlinx.coroutines.Job
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.github.libretube.test.ui.sheets.PlaylistOptionsSheet
+import com.github.libretube.test.ui.sheets.SortPlaylistSheet
+import com.github.libretube.test.ui.sheets.DownloadPlaylistBottomSheet
+import com.github.libretube.test.ui.sheets.RenamePlaylistSheet
+import com.github.libretube.test.ui.sheets.EditPlaylistDescriptionSheet
+import com.github.libretube.test.ui.sheets.DeletePlaylistConfirmationSheet
+import com.github.libretube.test.helpers.ImportHelper
+import com.github.libretube.test.enums.ImportFormat
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun PlaylistScreen(
+    playlistId: String,
     playlist: Playlist?,
     playlistType: PlaylistType,
     isLoading: Boolean,
@@ -56,16 +69,61 @@ fun PlaylistScreen(
     onShuffleClick: () -> Unit,
     onSaveReorder: (List<StreamItem>) -> Unit,
     onDeleteVideo: (StreamItem) -> Unit,
-    onShowOptions: () -> Unit,
+    onRenamePlaylist: (String) -> Unit,
+    onChangeDescription: (String) -> Unit,
+    onDeletePlaylist: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var isReorderMode by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var isSearchVisible by remember { mutableStateOf(false) }
+
+    // Sheets state
+    var showOptionsSheet by rememberSaveable { mutableStateOf(false) }
+    var showSortSheet by rememberSaveable { mutableStateOf(false) }
+    var showDownloadSheet by rememberSaveable { mutableStateOf(false) }
+    var showRenameSheet by rememberSaveable { mutableStateOf(false) }
+    var showDescriptionSheet by rememberSaveable { mutableStateOf(false) }
+    var showDeleteSheet by rememberSaveable { mutableStateOf(false) }
+    var showSongOptionsSheet by rememberSaveable { mutableStateOf(false) }
+    var selectedSongItem by remember { mutableStateOf<StreamItem?>(null) }
+
+    // Sort state
+    var currentSortOrder by rememberSaveable { mutableStateOf("custom") }
     
     // Manage playlist items locally for filtering and reordering
     var playlistItems by remember(playlist) { mutableStateOf(playlist?.relatedStreams ?: emptyList()) }
+    
+    // Sort logic
+    LaunchedEffect(currentSortOrder, playlist) {
+        playlist?.relatedStreams?.let { streams ->
+             playlistItems = when (currentSortOrder) {
+                "creation_date" -> streams.reversed() // ASSUMPTION: DB is oldest first, newest should be reversed
+                "creation_date_reversed" -> streams // Oldest first
+                "alphabetic" -> streams.sortedBy { it.title?.lowercase() }
+                "alphabetic_reversed" -> streams.sortedByDescending { it.title?.lowercase() }
+                else -> streams // custom/default
+            }
+        }
+    }
+
+    // Export launcher
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            scope.launch {
+                 ImportHelper.exportPlaylists(
+                    context = context,
+                    uri = it,
+                    importFormat = ImportFormat.YOUTUBE_COMPATIBLE,
+                    selectedPlaylistIds = listOf(playlistId)
+                )
+            }
+        }
+    }
     
     // Filtered list
     val filteredItems by remember(playlistItems, searchQuery) {
@@ -119,27 +177,27 @@ fun PlaylistScreen(
                 TopAppBar(
                     title = { Text(stringResource(R.string.playlists)) },
                     actions = {
-                        IconButton(onClick = { isSearchVisible = true }) {
-                            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search_hint))
-                        }
-                        IconButton(onClick = onShowOptions) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                        if (isReorderMode) {
+                            TextButton(onClick = {
+                                onSaveReorder(playlistItems)
+                                isReorderMode = false
+                            }) {
+                                Text("Done", fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            IconButton(onClick = { isSearchVisible = true }) {
+                                Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search_hint))
+                            }
+                            IconButton(onClick = { showOptionsSheet = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                            }
                         }
                     }
                 )
             }
         },
         floatingActionButton = {
-            if (isReorderMode) {
-                FloatingActionButton(
-                    onClick = {
-                        onSaveReorder(playlistItems)
-                        isReorderMode = false
-                    }
-                ) {
-                    Icon(Icons.Default.Check, contentDescription = "Save")
-                }
-            } else if (!isLoading && playlist != null && filteredItems.isNotEmpty()) {
+            if (!isReorderMode && !isLoading && playlist != null && filteredItems.isNotEmpty()) {
                 FloatingActionButton(
                     onClick = onPlayAllClick
                 ) {
@@ -164,14 +222,15 @@ fun PlaylistScreen(
                 // Header
                 item {
                     PlaylistHeader(
-                        playlist = playlist,
+                        playlist = playlist!!,
                         videoCount = playlistItems.size,
                         isBookmarked = isBookmarked,
                         playlistType = playlistType,
                         onBookmarkClick = onBookmarkClick,
                         onReorderClick = { isReorderMode = !isReorderMode },
                         onShuffleClick = onShuffleClick,
-                        isReorderEnabled = playlistType != PlaylistType.PUBLIC
+                        isReorderEnabled = playlistType != PlaylistType.PUBLIC,
+                        firstItemThumbnail = playlistItems.firstOrNull()?.thumbnail
                     )
                 }
 
@@ -186,87 +245,116 @@ fun PlaylistScreen(
                         items = filteredItems,
                         key = { _, item -> item.url + item.title } // Use unique key
                     ) { index, item ->
-                        val dismissState = rememberSwipeToDismissBoxState(
-                            confirmValueChange = {
-                                if (it == SwipeToDismissBoxValue.EndToStart) {
-                                    onDeleteVideo(item)
-                                    // Optimistic update
-                                    playlistItems = playlistItems.toMutableList().apply { remove(item) }
-                                    true
-                                } else false
+                        PlaylistItem(
+                            item = item,
+                            isReorderMode = isReorderMode,
+                            onClick = { onVideoClick(item) },
+                            onLongClick = { 
+                                selectedSongItem = item
+                                showSongOptionsSheet = true
+                            },
+                            onMoveUp = {
+                                if (index > 0) {
+                                    val newList = playlistItems.toMutableList()
+                                    java.util.Collections.swap(newList, index, index - 1)
+                                    playlistItems = newList
+                                }
+                            },
+                            onMoveDown = {
+                                if (index < playlistItems.lastIndex) {
+                                    val newList = playlistItems.toMutableList()
+                                    java.util.Collections.swap(newList, index, index + 1)
+                                    playlistItems = newList
+                                }
                             }
                         )
-                        
-                        // Swipe enabled only for local playlists and filteredList matches actual list
-                        val isSwipeEnabled = playlistType != PlaylistType.PUBLIC && searchQuery.isEmpty() && !isReorderMode
-
-                        if (isSwipeEnabled) {
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                backgroundContent = {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(MaterialTheme.colorScheme.errorContainer)
-                                            .padding(horizontal = 20.dp),
-                                        contentAlignment = Alignment.CenterEnd
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = "Delete",
-                                            tint = MaterialTheme.colorScheme.onErrorContainer
-                                        )
-                                    }
-                                }
-                            ) {
-                                PlaylistItem(
-                                    item = item,
-                                    isReorderMode = isReorderMode,
-                                    onClick = { onVideoClick(item) },
-                                    onLongClick = { onVideoLongClick(item) },
-                                    onMoveUp = {
-                                        if (index > 0) {
-                                            val newList = playlistItems.toMutableList()
-                                            java.util.Collections.swap(newList, index, index - 1)
-                                            playlistItems = newList
-                                        }
-                                    },
-                                    onMoveDown = {
-                                        if (index < playlistItems.lastIndex) {
-                                            val newList = playlistItems.toMutableList()
-                                            java.util.Collections.swap(newList, index, index + 1)
-                                            playlistItems = newList
-                                        }
-                                    }
-                                )
-                            }
-                        } else {
-                            PlaylistItem(
-                                item = item,
-                                isReorderMode = isReorderMode,
-                                onClick = { onVideoClick(item) },
-                                onLongClick = { onVideoLongClick(item) },
-                                onMoveUp = {
-                                    if (index > 0) {
-                                        val newList = playlistItems.toMutableList()
-                                        java.util.Collections.swap(newList, index, index - 1)
-                                        playlistItems = newList
-                                    }
-                                },
-                                onMoveDown = {
-                                    if (index < playlistItems.lastIndex) {
-                                        val newList = playlistItems.toMutableList()
-                                        java.util.Collections.swap(newList, index, index + 1)
-                                        playlistItems = newList
-                                    }
-                                }
-                            )
-                        }
                         HorizontalDivider()
                     }
                 }
             }
         }
+    }
+
+    if (showOptionsSheet) {
+        PlaylistOptionsSheet(
+            onPlayBackground = {
+                // TODO: Implement Logic to start background play
+                 onPlayAllClick() // Temporary
+            },
+            onDownload = { showDownloadSheet = true },
+            onSort = { showSortSheet = true },
+            onExport = { 
+                exportLauncher.launch("playlist_${playlist?.name ?: "export"}.json")
+            },
+            onRename = { showRenameSheet = true },
+            onChangeDescription = { showDescriptionSheet = true },
+            onDelete = { showDeleteSheet = true },
+            onDismissRequest = { showOptionsSheet = false }
+        )
+    }
+
+    if (showSortSheet) {
+        SortPlaylistSheet(
+            currentSort = currentSortOrder,
+            onSortSelected = { 
+                currentSortOrder = it
+            },
+            onDismissRequest = { showSortSheet = false }
+        )
+    }
+
+    if (showDownloadSheet && playlist != null) {
+        DownloadPlaylistBottomSheet(
+            playlistId = playlistId,
+            playlistName = playlist.name ?: "",
+            playlistType = playlistType,
+            onDismissRequest = { showDownloadSheet = false }
+        )
+    }
+
+    if (showRenameSheet && playlist != null) {
+        RenamePlaylistSheet(
+            currentName = playlist.name ?: "",
+            onConfirm = { 
+                onRenamePlaylist(it)
+                showRenameSheet = false
+            },
+            onCancel = { showRenameSheet = false }
+        )
+    }
+
+    if (showDescriptionSheet && playlist != null) {
+        EditPlaylistDescriptionSheet(
+            currentDescription = playlist.description ?: "",
+            onConfirm = {
+                onChangeDescription(it)
+                showDescriptionSheet = false
+            },
+            onCancel = { showDescriptionSheet = false }
+        )
+    }
+
+    if (showDeleteSheet) {
+        DeletePlaylistConfirmationSheet(
+            onConfirm = {
+                onDeletePlaylist()
+                showDeleteSheet = false
+            },
+            onCancel = { showDeleteSheet = false }
+        )
+    }
+
+    if (showSongOptionsSheet && selectedSongItem != null) {
+        com.github.libretube.test.ui.sheets.VideoOptionsSheet(
+            streamItem = selectedSongItem!!,
+            onDismissRequest = { showSongOptionsSheet = false },
+            onShareClick = {
+                // Share functionality
+            },
+            onDownloadClick = {
+                // TODO: Implement download
+            }
+        )
     }
 }
 
@@ -279,50 +367,54 @@ fun PlaylistHeader(
     onBookmarkClick: () -> Unit,
     onReorderClick: () -> Unit,
     onShuffleClick: () -> Unit,
-    isReorderEnabled: Boolean
+    isReorderEnabled: Boolean,
+    firstItemThumbnail: String? = null
 ) {
     val context = LocalContext.current
     
     Column(modifier = Modifier.fillMaxWidth()) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = playlist.thumbnailUrl,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.3f))
-            )
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(16.dp)
+            // 1:1 Square Cover
+            Card(
+                modifier = Modifier.size(120.dp),
+                shape = MaterialTheme.shapes.medium
             ) {
+                AsyncImage(
+                    model = firstItemThumbnail ?: playlist.thumbnailUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = playlist.name ?: "",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = if (playlist.uploader != null) 
                         stringResource(R.string.uploaderAndVideoCount, playlist.uploader!!, videoCount)
                     else 
                         stringResource(R.string.videoCount, videoCount),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
-
+    
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -346,7 +438,7 @@ fun PlaylistHeader(
                     Text(stringResource(R.string.shuffle))
                 }
             }
-
+    
             // Reorder button (only local playlists)
             if (isReorderEnabled) {
                 TextButton(onClick = onReorderClick) {

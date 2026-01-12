@@ -35,6 +35,7 @@ fun PlayerMetadataSection(
     val isLiked by viewModel.isLiked.collectAsState()
     val isDisliked by viewModel.isDisliked.collectAsState()
     val isBookmarked by viewModel.isBookmarked.collectAsState()
+    val isAudioOnly by viewModel.isAudioOnlyMode.collectAsState()
     var isDescriptionExpanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.padding(16.dp)) {
@@ -108,6 +109,13 @@ fun PlayerMetadataSection(
                 label = "Bookmark",
                 tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 onClick = { viewModel.toggleBookmark() }
+            )
+            ActionButton(
+                modifier = Modifier.weight(1f),
+                icon = if (isAudioOnly) Icons.Default.MusicNote else Icons.Default.MusicOff,
+                label = if (isAudioOnly) "Audio: On" else "Audio: Off",
+                tint = if (isAudioOnly) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                onClick = { viewModel.toggleAudioOnlyMode() }
             )
         }
 

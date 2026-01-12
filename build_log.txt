@@ -1,0 +1,70 @@
+Reusing configuration cache.
+
+FAILURE: Build completed with 4 failures.
+
+1: Task failed with an exception.
+-----------
+* What went wrong:
+Gradle could not start your build.
+> Cannot create service of type TaskExecuter using method ProjectExecutionServices.createTaskExecuter() as there is a problem with parameter #9 of type ReservedFileSystemLocationRegistry.
+   > Cannot create service of type ReservedFileSystemLocationRegistry using method ProjectExecutionServices.createReservedFileLocationRegistry() as there is a problem with parameter #1 of type List<ReservedFileSystemLocation>.
+      > Could not create service of type ExecutionHistoryStore using ExecutionBuildServices.createExecutionHistoryStore().
+         > Cannot lock execution history cache (D:\Rom\Project\LTE\.gradle\9.2.1\executionHistory) as it has already been locked by this process.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+2: Task failed with an exception.
+-----------
+* What went wrong:
+Gradle could not start your build.
+> Cannot create service of type TaskExecuter using method ProjectExecutionServices.createTaskExecuter() as there is a problem with parameter #9 of type ReservedFileSystemLocationRegistry.
+   > Cannot create service of type ReservedFileSystemLocationRegistry using method ProjectExecutionServices.createReservedFileLocationRegistry() as there is a problem with parameter #1 of type List<ReservedFileSystemLocation>.
+      > Could not create service of type ExecutionHistoryStore using ExecutionBuildServices.createExecutionHistoryStore().
+         > Cannot lock execution history cache (D:\Rom\Project\LTE\.gradle\9.2.1\executionHistory) as it has already been locked by this process.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+3: Task failed with an exception.
+-----------
+* What went wrong:
+Gradle could not start your build.
+> Cannot create service of type TaskExecuter using method ProjectExecutionServices.createTaskExecuter() as there is a problem with parameter #9 of type ReservedFileSystemLocationRegistry.
+   > Cannot create service of type ReservedFileSystemLocationRegistry using method ProjectExecutionServices.createReservedFileLocationRegistry() as there is a problem with parameter #1 of type List<ReservedFileSystemLocation>.
+      > Could not create service of type ExecutionHistoryStore using ExecutionBuildServices.createExecutionHistoryStore().
+         > Cannot lock execution history cache (D:\Rom\Project\LTE\.gradle\9.2.1\executionHistory) as it has already been locked by this process.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+4: Task failed with an exception.
+-----------
+* What went wrong:
+Gradle could not start your build.
+> Cannot create service of type TaskExecuter using method ProjectExecutionServices.createTaskExecuter() as there is a problem with parameter #9 of type ReservedFileSystemLocationRegistry.
+   > Cannot create service of type ReservedFileSystemLocationRegistry using method ProjectExecutionServices.createReservedFileLocationRegistry() as there is a problem with parameter #1 of type List<ReservedFileSystemLocation>.
+      > Could not create service of type ExecutionHistoryStore using ExecutionBuildServices.createExecutionHistoryStore().
+         > Cannot lock execution history cache (D:\Rom\Project\LTE\.gradle\9.2.1\executionHistory) as it has already been locked by this process.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+BUILD FAILED in 1s
+Configuration cache entry reused.

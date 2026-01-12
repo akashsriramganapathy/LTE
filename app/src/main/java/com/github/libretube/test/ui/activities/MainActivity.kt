@@ -96,6 +96,8 @@ import com.github.libretube.test.ui.navigation.MainNavigation
 import com.github.libretube.test.ui.navigation.Routes
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.github.libretube.test.ui.components.FloatingBottomNavigation
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -393,13 +395,28 @@ class MainActivity : BaseActivity() {
                     }
                 }
 
+                // Fix: Fullscreen orientation toggle
+                LaunchedEffect(playerViewModel) {
+                    playerViewModel.fullscreenTrigger.collect { isFullscreen ->
+                        requestedOrientation = if (isFullscreen) {
+                            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                        } else {
+                            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                        }
+                    }
+                }
+
                 val playerContent = remember {
-                    movableContentOf {
+                    movableContentOf { bottomPadding: Dp ->
                         PlayerScreen(
                             playerViewModel = playerViewModel,
                             onClose = {
+                                // Fix: Stop playback before clearing queue
+                                playerViewModel.playerController.value?.pause()
+                                playerViewModel.playerController.value?.clearMediaItems()
                                 PlayingQueue.clear()
-                            }
+                            },
+                            bottomPadding = bottomPadding
                         )
                     }
                 }
@@ -525,7 +542,13 @@ class MainActivity : BaseActivity() {
                     }
 
                     if (!isQueueEmpty) {
-                        playerContent()
+                        val showBottomBar = !isPlayerExpanded && currentRoute in listOf(
+                            com.github.libretube.test.ui.navigation.Routes.Home,
+                            com.github.libretube.test.ui.navigation.Routes.Trends,
+                            com.github.libretube.test.ui.navigation.Routes.Subscriptions,
+                            com.github.libretube.test.ui.navigation.Routes.Library
+                        )
+                        playerContent(if (showBottomBar) 100.dp else 0.dp)
                     }
                 }
             }

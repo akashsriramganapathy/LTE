@@ -72,4 +72,27 @@ class PlaylistScreenModel : ViewModel() {
             }
         }
     }
+
+    fun renamePlaylist(playlistId: String, newName: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            PlaylistsHelper.renamePlaylist(playlistId, newName)
+            _playlist.value = _playlist.value?.copy(name = newName)
+        }
+    }
+
+    fun changeDescription(playlistId: String, newDescription: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            PlaylistsHelper.changePlaylistDescription(playlistId, newDescription)
+            _playlist.value = _playlist.value?.copy(description = newDescription)
+        }
+    }
+
+    fun deletePlaylist(playlistId: String, onSuccess: () -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            PlaylistsHelper.deletePlaylist(playlistId)
+            withContext(Dispatchers.Main) {
+                onSuccess()
+            }
+        }
+    }
 }

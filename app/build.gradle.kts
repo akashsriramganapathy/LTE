@@ -10,20 +10,7 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-/*
-'keystore.properties' should look like the following:
-
-storeFile=my.keystore
-storePassword=my_store_password
-keyAlias=my_key_alias
-keyPassword=my_key_password
- */
-
-val keystoreProperties = Properties()
-val keystoreFileExists = rootProject.file("keystore.properties").exists();
-if (keystoreFileExists) {
-    keystoreProperties.load(rootProject.file("keystore.properties").inputStream())
-}
+// Signing properties will be hardcoded for this configuration as requested
 
 android {
     compileSdk = 35
@@ -32,7 +19,7 @@ android {
         applicationId = "com.github.libretube.test"
         minSdk = 26
         targetSdk = 35
-        versionCode = 64
+        versionCode = 70
         val runNumber = if (project.hasProperty("runNumber")) project.property("runNumber") as String else null
         val releaseTag = if (project.hasProperty("releaseTag")) project.property("releaseTag") as String else "experimental"
         
@@ -40,7 +27,7 @@ android {
             if (releaseTag == "experimental") "Experimental-Run$runNumber"
             else "Nightly-Run$runNumber"
         } else {
-            "0.29.1"
+            "0.1"
         }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -61,13 +48,11 @@ android {
     }
 
     signingConfigs {
-        if (keystoreFileExists) {
-            create("release") {
-                storeFile = keystoreProperties["storeFile"]?.let { file(it as String) }
-                storePassword = keystoreProperties["storePassword"] as String
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-            }
+        create("release") {
+            storeFile = rootProject.file("libretube_release.jks")
+            storePassword = "123456"
+            keyAlias = "libretube"
+            keyPassword = "123456"
         }
     }
 
@@ -75,7 +60,7 @@ android {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.findByName("release")?.takeIf { it.storeFile != null }
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

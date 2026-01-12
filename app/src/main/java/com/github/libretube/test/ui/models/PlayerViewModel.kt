@@ -178,6 +178,20 @@ class PlayerViewModel : ViewModel() {
         _isInPip.value = inPip
     }
 
+    private val _isFullscreen = MutableStateFlow(false)
+    val isFullscreen = _isFullscreen.asStateFlow()
+
+    private val _fullscreenTrigger = MutableSharedFlow<Boolean>()
+    val fullscreenTrigger = _fullscreenTrigger.asSharedFlow()
+
+    fun toggleFullscreen() {
+        viewModelScope.launch {
+            val newState = !_isFullscreen.value
+            _isFullscreen.value = newState
+            _fullscreenTrigger.emit(newState)
+        }
+    }
+
     private val _areControlsLocked = MutableStateFlow(false)
     val areControlsLocked = _areControlsLocked.asStateFlow()
 
@@ -212,6 +226,13 @@ class PlayerViewModel : ViewModel() {
 
     private val _resizeMode = MutableStateFlow(androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT)
     val resizeMode = _resizeMode.asStateFlow()
+
+    private val _isAudioOnlyMode = MutableStateFlow(false)
+    val isAudioOnlyMode = _isAudioOnlyMode.asStateFlow()
+
+    fun toggleAudioOnlyMode() {
+        _isAudioOnlyMode.value = !_isAudioOnlyMode.value
+    }
 
     // Queue (direct from singleton)
     val queue = PlayingQueue.queueState

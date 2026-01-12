@@ -229,6 +229,7 @@ fun MainNavigation(
             }
 
             PlaylistScreen(
+                playlistId = playlistId,
                 playlist = playlist,
                 playlistType = type,
                 isLoading = isLoading,
@@ -251,7 +252,13 @@ fun MainNavigation(
                 },
                 onSaveReorder = { items -> playlistViewModel.saveReorder(playlistId, items) },
                 onDeleteVideo = { item -> playlistViewModel.deleteVideo(playlistId, item) },
-                onShowOptions = { /* TODO */ }
+                onRenamePlaylist = { newName -> playlistViewModel.renamePlaylist(playlistId, newName) },
+                onChangeDescription = { desc -> playlistViewModel.changeDescription(playlistId, desc) },
+                onDeletePlaylist = { 
+                    playlistViewModel.deletePlaylist(playlistId) {
+                        navController.popBackStack() 
+                    }
+                }
             )
         }
         

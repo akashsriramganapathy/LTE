@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.libretube.test.extensions.toID
 import com.github.libretube.test.obj.VideoStats
@@ -46,10 +47,11 @@ enum class PlayerState {
 @Composable
 fun PlayerScreen(
     playerViewModel: PlayerViewModel,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    bottomPadding: Dp = 0.dp
 ) {
     com.github.libretube.test.ui.theme.LibreTubeTheme {
-        PlayerScreenContent(playerViewModel, onClose)
+        PlayerScreenContent(playerViewModel, onClose, bottomPadding)
     }
 }
 
@@ -57,17 +59,20 @@ fun PlayerScreen(
 @Composable
 private fun PlayerScreenContent(
     playerViewModel: PlayerViewModel,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    bottomPadding: Dp
 ) {
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
     val screenHeightPx = LocalContext.current.resources.displayMetrics.heightPixels.toFloat()
     
     // AnchoredDraggable State
-    val anchors = remember(configuration, screenHeightPx) {
+    val anchors = remember(configuration, screenHeightPx, bottomPadding) {
         DraggableAnchors {
-            // Offset Collapsed anchor by approx (80dp miniplayer + 80dp bottom nav)
-            PlayerState.Collapsed at (screenHeightPx - with(density) { 160.dp.toPx() }) 
+            // Offset Collapsed anchor by (80dp miniplayer + provided bottom padding)
+            val miniPlayerHeight = with(density) { 80.dp.toPx() }
+            val paddingPx = with(density) { bottomPadding.toPx() }
+            PlayerState.Collapsed at (screenHeightPx - miniPlayerHeight - paddingPx) 
             PlayerState.Expanded at 0f
         }
     }

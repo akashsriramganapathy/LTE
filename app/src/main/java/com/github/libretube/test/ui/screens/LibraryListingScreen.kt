@@ -114,7 +114,8 @@ fun LibraryListingScreen(
                     val videoCount = if (item is Playlists) item.videos else (item as PlaylistBookmark).videos.toLong()
                     val thumbnail = if (item is Playlists) item.thumbnail else (item as PlaylistBookmark).thumbnailUrl
                     val id = if (item is Playlists) item.id!! else (item as PlaylistBookmark).playlistId
-                    val type = if (isPlaylists) PlaylistType.LOCAL else PlaylistType.PUBLIC
+                    // FIX: Use the actual type based on which list we're showing
+                    val type = if (item is Playlists) PlaylistType.LOCAL else PlaylistType.PUBLIC
 
                     LibraryItemRow(
                         title = title ?: "",

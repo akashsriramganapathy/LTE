@@ -162,7 +162,7 @@ fun PlayerControls(
                     )
 
                     // Fullscreen Right
-                    IconButton(onClick = { /* Fullscreen Toggle placeholder */ }) {
+                    IconButton(onClick = { viewModel.toggleFullscreen() }) {
                         Icon(Icons.Default.Fullscreen, contentDescription = "Fullscreen", tint = Color.White, modifier = Modifier.size(28.dp))
                     }
                 }

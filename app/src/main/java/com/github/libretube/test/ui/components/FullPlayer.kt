@@ -10,8 +10,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
@@ -61,6 +62,8 @@ fun FullPlayer(
         }
     }
 
+    val isAudioOnly by viewModel.isAudioOnlyMode.collectAsState()
+
     Column(
         modifier = modifier
             .graphicsLayer(alpha = alpha)
@@ -77,41 +80,47 @@ fun FullPlayer(
             )
     ) { 
         // 1. VIDEO SURFACE CONTAINER 
-        // This box holds the Space for the Video Surface + The Overlay Controls
-        // It stays at the top.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding() // Reserve space for status bar
-                .aspectRatio(16f / 9f) // Standard video aspect ratio
+                .statusBarsPadding()
+                .aspectRatio(16f / 9f)
         ) {
-            // Space reserved for the video surface which is rendered in DraggablePlayerPanel
+            // Space reserved for video surface
         }
 
-        // 2. SCROLLABLE METADATA CONTENT
-        // Everything else scrolls BELOW the video
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f) // Fill remaining space
-                .verticalScroll(rememberScrollState())
-        ) {
-            
-            PlayerMetadataSection(viewModel = viewModel)
-            
-            // Actions Row (Like, Share, Download, etc.) - If separated from Metadata
-            // For now contained in Metadata or we can add it here
-            
-            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
+        // 2. CONTENT AREA
+        if (isAudioOnly) {
+            // INTEGRATED LISTENING MODE: Prominent Controls only
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                ListeningControls(viewModel = viewModel)
+            }
+        } else {
+            // STANDARD MODE: Scrollable Metadata, Comments, Related
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                PlayerMetadataSection(viewModel = viewModel)
+                
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
 
-            CommentsSection(
-                viewModel = viewModel, 
-                onViewAllClick = onCommentsClick
-            )
-            
-            RelatedVideosSection(viewModel = viewModel)
-            
-            Spacer(modifier = Modifier.height(32.dp))
+                CommentsSection(
+                    viewModel = viewModel, 
+                    onViewAllClick = onCommentsClick
+                )
+                
+                RelatedVideosSection(viewModel = viewModel)
+                
+                Spacer(modifier = Modifier.height(32.dp))
+            }
         }
     }
 }

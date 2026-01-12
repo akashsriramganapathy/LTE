@@ -72,6 +72,7 @@ fun DraggablePlayerPanel(
         val currentHeight = androidx.compose.ui.util.lerp(fullHeight.value, miniHeight.value, progress).dp
         
         val showControls by viewModel.showControls.collectAsState()
+        val isAudioOnly by viewModel.isAudioOnlyMode.collectAsState()
 
         // Video container with layout-based resizing for SurfaceView compatibility
         // When collapsed (progress=1), this matches the mini player thumb area
@@ -81,11 +82,40 @@ fun DraggablePlayerPanel(
                 .size(currentWidth, currentHeight)
                 .zIndex(2f) 
         ) {
-            // No inverse scaling needed here as we are changing the actual layout size
-            videoSurface(
-                Modifier.fillMaxSize(),
-                progress > 0.8f // Disable gestures if mostly collapsed
-            )
+            // Show thumbnail in audio-only mode, otherwise show video surface
+            if (isAudioOnly) {
+                // Audio-only mode: Show thumbnail
+                coil3.compose.AsyncImage(
+                    model = currentStream?.thumbnail,
+                    contentDescription = "Audio thumbnail",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+                // Scrim overlay for better control visibility
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.3f))
+                )
+                
+                // Add Gesture Overlay to Audio Mode as well
+                if (progress < 0.2f) { // Only when expanded
+                    PlayerGestureOverlay(
+                        onSeek = { seekAmount ->
+                            val currentPosition = viewModel.currentPosition.value
+                            val newPosition = (currentPosition + seekAmount).coerceAtLeast(0)
+                            viewModel.seekTo(newPosition)
+                        },
+                        onTap = { viewModel.toggleControls() }
+                    )
+                }
+            } else {
+                // Normal video mode
+                videoSurface(
+                    Modifier.fillMaxSize(),
+                    progress > 0.8f // Disable gestures if mostly collapsed
+                )
+            }
 
             // Gesture Overlay: Captured in Mini Player mode to prevent SurfaceView touch swallowing
             if (progress > 0.8f) {

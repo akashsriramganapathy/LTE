@@ -151,16 +151,40 @@ object ImportHelper {
     suspend fun importPlaylists(context: Context, uri: Uri, importFormat: ImportFormat) {
         val importPlaylists = mutableListOf<LocalImportPlaylist>()
         when (importFormat) {
-            ImportFormat.FREETUBE -> {
+            ImportFormat.YOUTUBE_COMPATIBLE -> {
+                val playlistFile =
+                    context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                         val text = inputStream.bufferedReader().readText()
+                         // Try to decode as list of objects or single object
+                         runCatching {
+                             JsonHelper.json.decodeFromString<List<FreeTubeImportPlaylist>>(text)
+                         }.getOrNull() ?: runCatching {
+                             listOf(JsonHelper.json.decodeFromString<FreeTubeImportPlaylist>(text))
+                         }.getOrNull()
+                    }
+
+                val playlists = playlistFile.orEmpty().map { playlist ->
+                    LocalImportPlaylist(
+                        playlist.name,
+                        playlist.videos.map { it.videoId }
+                    )
+                }
+                importPlaylists.addAll(playlists)
+            }
+
+             ImportFormat.FREETUBE -> {
                 val playlistFile =
                     context.contentResolver.openInputStream(uri)?.use { inputStream ->
                         val text = inputStream.bufferedReader().readText()
                         runCatching {
-                            text.lines().map { line ->
+                            text.lines().filter { it.isNotBlank() }.map { line ->
                                 JsonHelper.json.decodeFromString<FreeTubeImportPlaylist>(line)
                             }
                         }.getOrNull() ?: runCatching {
-                            listOf(JsonHelper.json.decodeFromString<FreeTubeImportPlaylist>(text))
+                            // Try single object or array
+                             JsonHelper.json.decodeFromString<List<FreeTubeImportPlaylist>>(text)
+                        }.getOrNull() ?: runCatching {
+                             listOf(JsonHelper.json.decodeFromString<FreeTubeImportPlaylist>(text))
                         }.getOrNull()
                     }
 
@@ -214,10 +238,16 @@ object ImportHelper {
 
             ImportFormat.URLSORIDS -> {
                 context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                    val playlist = LocalImportPlaylist(name = TextUtils.getFileSafeTimeStampNow())
+                    val fileName = DocumentFile.fromSingleUri(context, uri)?.name?.substringBeforeLast(".") ?: TextUtils.getFileSafeTimeStampNow()
+                     val lines = inputStream.bufferedReader().readLines()
+                    
+                    // Simple logic: treat file name as playlist name
+                    val playlist = LocalImportPlaylist(name = fileName)
 
-                    playlist.videos = inputStream.bufferedReader().readLines()
-                        .flatMap { it.split(",") }
+                    playlist.videos = lines
+                        .flatMap { it.split(",", " ", "\n") } // Split by comman, space or newline
+                        .map { it.trim() }
+                        .filter { it.isNotBlank() }
                         .mapNotNull { videoUrlOrId ->
                             if (videoUrlOrId.length == VIDEO_ID_LENGTH) {
                                 videoUrlOrId
@@ -282,6 +312,29 @@ object ImportHelper {
 
                 context.contentResolver.openOutputStream(uri)?.use {
                     it.write(freeTubeExportDb.toByteArray())
+                }
+                context.toastFromMainDispatcher(R.string.exportsuccess)
+            }
+            
+            ImportFormat.YOUTUBE_COMPATIBLE -> {
+                // Export as JSON array of playlists
+                val exportList = playlists.map { playlist ->
+                     val videos = playlist.relatedStreams.map { videoInfo ->
+                        FreeTubeVideo(
+                            videoId = videoInfo.url.orEmpty().toID(),
+                            title = videoInfo.title.orEmpty(),
+                            author = videoInfo.uploaderName.orEmpty(),
+                            authorId = videoInfo.uploaderUrl.orEmpty().toID(),
+                            lengthSeconds = videoInfo.duration ?: 0L
+                        )
+                    }
+                    FreeTubeImportPlaylist(playlist.name.orEmpty(), videos)
+                }
+                
+                val jsonString = JsonHelper.json.encodeToString(exportList)
+
+                context.contentResolver.openOutputStream(uri)?.use {
+                    it.write(jsonString.toByteArray())
                 }
                 context.toastFromMainDispatcher(R.string.exportsuccess)
             }

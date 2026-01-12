@@ -85,7 +85,10 @@ object NavigationHelper {
 
         val activity = ContextHelper.unwrapActivity<MainActivity>(context)
         activity.navController.navigate(
-            com.github.libretube.test.ui.navigation.Routes.playlist(playlistId = playlistUrlOrId.toID())
+            com.github.libretube.test.ui.navigation.Routes.playlist(
+                playlistId = playlistUrlOrId.toID(),
+                type = playlistType
+            )
         )
     }
 

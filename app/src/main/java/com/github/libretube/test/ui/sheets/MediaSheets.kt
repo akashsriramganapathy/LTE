@@ -887,6 +887,16 @@ fun ConsolidatedOptionsSheet(
                 leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
                 modifier = Modifier.clickable { onStatsClick() }
             )
+
+            // Audio-Only Mode
+            val isAudioOnly by viewModel.isAudioOnlyMode.collectAsState()
+            ListItem(
+                headlineContent = { Text(if (isAudioOnly) "Audio-only mode (On)" else "Audio-only mode (Off)") },
+                leadingContent = { Icon(Icons.Default.MusicNote, contentDescription = null) },
+                modifier = Modifier.clickable { 
+                    viewModel.toggleAudioOnlyMode()
+                }
+            )
         }
     }
 }
